@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Glide slope: a gold curve descending across the safe zone. -->
+    <path
+        android:strokeColor="#E6B455"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M30,40 C42,46 54,64 78,74" />
+    <!-- Plane marker riding the slope. -->
+    <path
+        android:fillColor="#E6B455"
+        android:pathData="M54,50 l9,5 l-9,5 l2,-5 z" />
+</vector>

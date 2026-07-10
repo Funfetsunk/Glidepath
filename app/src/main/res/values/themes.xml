@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window-level theme only. Actual UI colours come from the Compose GlideTheme. -->
+    <style name="Theme.Glidepath" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/glide_window_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

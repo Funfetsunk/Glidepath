@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pinewood dark bg (default theme). -->
+    <color name="glide_window_bg">#0D201B</color>
+</resources>

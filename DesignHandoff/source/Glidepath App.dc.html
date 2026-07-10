@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d9d6d0; font-family: 'Hanken Grotesk', system-ui, sans-serif; }
+  a { color: #7a6f3a; text-decoration: none; }
+  a:hover { color: #4a4325; }
+  .gp-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes gpPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+  @keyframes gpRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes gpGlidePass { 0% { offset-distance: 8%; } 100% { offset-distance: 78%; } }
+  @keyframes gpFall { 0% { transform: translateY(-40px) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(560px) rotate(320deg); opacity: 0; } }
+  @keyframes gpRing { from { transform: scale(.4); opacity: .7; } to { transform: scale(1.5); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 20px 80px;">
+  <div style="text-align:center; margin-bottom:8px;">
+    <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#8a8378;">Glidepath · Interactive prototype</div>
+    <div style="font-size:13px; color:#6f685d; margin-top:6px;">Log a payment to watch the glide move · cross a milestone to trigger the celebration · switch themes in Settings → Appearance</div>
+  </div>
+
+  <!-- review toolbar -->
+  <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:420px; margin:14px 0 22px;">
+    <span onClick="{{ goHome }}" style="{{ tbHome }}">Home</span>
+    <span onClick="{{ openLog }}" style="{{ tbLog }}">Log</span>
+    <span onClick="{{ goHistory }}" style="{{ tbHistory }}">History</span>
+    <span onClick="{{ demoMilestone }}" style="{{ tbMile }}">Milestone</span>
+    <span onClick="{{ goComplete }}" style="{{ tbComplete }}">Complete</span>
+    <span onClick="{{ goSettings }}" style="{{ tbSettings }}">Settings</span>
+    <span onClick="{{ goAppearance }}" style="{{ tbAppear }}">Appearance</span>
+    <span onClick="{{ goWidget }}" style="{{ tbWidget }}">Widget</span>
+    <span onClick="{{ startOnboarding }}" style="{{ tbOnb }}">Onboarding</span>
+    <span onClick="{{ resetDemo }}" style="padding:6px 12px; border-radius:99px; font-size:12px; font-weight:700; cursor:pointer; background:#26221b; color:#fff;">↺ Reset demo</span>
+  </div>
+
+  <!-- phone -->
+  <div style="{{ tMain }}">
+    <div style="position:relative; width:360px; height:760px; border-radius:46px; border:11px solid var(--bezel); background:var(--bg); overflow:hidden; box-shadow:0 50px 110px rgba(20,15,5,0.32); display:flex; flex-direction:column; font-family:'Hanken Grotesk',system-ui,sans-serif;">
+
+      <!-- status bar -->
+      <sc-if value="{{ showStatus }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 24px 4px; color:var(--text); font-size:13px; font-weight:600; flex:0 0 auto;">
+          <span style="font-family:'Space Mono',monospace;">9:30</span>
+          <div style="display:flex; gap:6px; align-items:center; opacity:.85;">
+            <span style="width:16px; height:9px; border:1.5px solid var(--text); border-radius:2px; display:inline-block;"></span>
+            <span style="width:15px; height:9px; background:var(--text); border-radius:2px; display:inline-block;"></span>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ SCREEN BODY ============ -->
+      <div class="gp-scroll" style="flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column;">
+
+        <!-- ===== HOME ===== -->
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:10px 22px 0; animation:gpRise .4s ease both;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:22px;">
+              <div>
+                <div style="font-size:20px; font-weight:700; color:var(--text); line-height:1.1;">{{ goalName }}</div>
+                <div style="font-size:13px; color:var(--mut); margin-top:2px;">{{ goalSub }}</div>
+              </div>
+              <span style="flex:1;"></span>
+              <span style="font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--accent); background:var(--accentSoft); padding:5px 11px; border-radius:99px;">{{ goalChip }}</span>
+            </div>
+
+            <div style="text-align:center; margin-bottom:6px;">
+              <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:54px; letter-spacing:-2px; color:var(--text); line-height:1;">
+                <span style="font-size:30px; color:var(--accent); vertical-align:top; margin-right:2px;">{{ sym }}</span>{{ dispStr }}
+              </div>
+              <div style="font-size:14px; color:var(--mut); margin-top:8px;">{{ heroSub }}</div>
+            </div>
+
+            <div style="margin:26px 2px 4px;">
+              <div style="position:relative; width:300px; height:150px; margin:0 auto;">
+                <svg width="300" height="150" viewBox="0 0 300 150" style="position:absolute; inset:0; overflow:visible;">
+                  <path d="{{ homeArea }}" fill="var(--accentSoft)"></path>
+                  <path d="{{ homePath }}" fill="none" stroke="var(--track2)" stroke-width="3" stroke-linecap="round"></path>
+                  <path d="{{ homePath }}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ progDash }}" style="transition:stroke-dasharray .9s cubic-bezier(.22,1,.36,1);"></path>
+                  <line x1="6" y1="128" x2="294" y2="128" stroke="var(--track2)" stroke-width="1.5" stroke-dasharray="3 5" opacity="0.5"></line>
+                </svg>
+                <div style="position:absolute; top:0; left:0; width:8px; height:8px; border-radius:99px; background:{{ m25c }}; offset-path:path('{{ homePath }}'); offset-distance:25%; offset-rotate:0;"></div>
+                <div style="position:absolute; top:0; left:0; width:8px; height:8px; border-radius:99px; background:{{ m50c }}; offset-path:path('{{ homePath }}'); offset-distance:50%; offset-rotate:0;"></div>
+                <div style="position:absolute; top:0; left:0; width:8px; height:8px; border-radius:99px; background:{{ m75c }}; offset-path:path('{{ homePath }}'); offset-distance:75%; offset-rotate:0;"></div>
+                <div style="position:absolute; top:0; left:0; width:11px; height:11px; border-radius:3px; background:{{ m100c }}; offset-path:path('{{ homePath }}'); offset-distance:100%; offset-rotate:0;"></div>
+                <div style="position:absolute; top:0; left:0; width:0; height:0; border-left:14px solid var(--accent); border-top:8px solid transparent; border-bottom:8px solid transparent; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4)); offset-path:path('{{ homePath }}'); offset-distance:{{ progPct }}; offset-rotate:auto; transition:offset-distance .9s cubic-bezier(.22,1,.36,1);"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--mut); margin-top:8px;">
+                <span style="font-family:'Space Mono',monospace;">{{ endLeft }}</span>
+                <span style="font-family:'Space Mono',monospace; color:var(--accent);">{{ progPct }} {{ progWord }}</span>
+                <span style="font-family:'Space Mono',monospace;">{{ endRight }}</span>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:22px;">
+              <div style="flex:1; background:var(--surf); border-radius:16px; padding:14px;">
+                <div style="font-size:12px; color:var(--mut);">{{ stat1Label }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); margin-top:4px;">{{ stat1Val }}</div>
+              </div>
+              <div style="flex:1; background:var(--surf); border-radius:16px; padding:14px;">
+                <div style="font-size:12px; color:var(--mut);">On target</div>
+                <div style="font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); margin-top:4px;">{{ projTargetDate }}</div>
+                <div style="font-size:11px; color:var(--mut); margin-top:3px;">at your pace · {{ projPaceDate }}</div>
+              </div>
+            </div>
+
+            <span style="flex:1; min-height:16px;"></span>
+            <div onClick="{{ openLog }}" style="display:flex; align-items:center; justify-content:center; gap:9px; background:var(--accent); color:var(--onAccent); border-radius:18px; padding:17px; font-weight:700; font-size:16px; margin-bottom:14px; cursor:pointer;">
+              <span style="font-size:20px; line-height:1;">+</span> {{ ctaLabel }}
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== LOG PAYMENT ===== -->
+        <sc-if value="{{ isLog }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:6px 22px 0;">
+            <div style="display:flex; align-items:center; gap:14px; padding:6px 0 18px;">
+              <span onClick="{{ goHome }}" style="font-size:15px; color:var(--mut); cursor:pointer;">Cancel</span>
+              <span style="flex:1;"></span>
+              <span style="font-size:17px; font-weight:700; color:var(--text);">{{ logTitle }}</span>
+              <span style="flex:1;"></span>
+              <span style="width:44px;"></span>
+            </div>
+
+            <div style="text-align:center; margin:14px 0 6px;">
+              <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:56px; letter-spacing:-2px; color:{{ entryColor }}; line-height:1;">
+                <span style="font-size:30px; color:var(--accent); vertical-align:top; margin-right:2px;">{{ sym }}</span>{{ entryDisplay }}
+              </div>
+              <div style="font-size:13px; color:var(--mut); margin-top:8px;">{{ logHint }}</div>
+            </div>
+
+            <div style="display:flex; gap:8px; justify-content:center; margin:16px 0 6px; flex-wrap:wrap;">
+              <span onClick="{{ quick50 }}" style="font-family:'Space Mono',monospace; font-size:13px; color:var(--text); background:var(--surf); padding:8px 14px; border-radius:99px; cursor:pointer;">{{ sym }}50</span>
+              <span onClick="{{ quick100 }}" style="font-family:'Space Mono',monospace; font-size:13px; color:var(--text); background:var(--surf); padding:8px 14px; border-radius:99px; cursor:pointer;">{{ sym }}100</span>
+              <span onClick="{{ quickMonthly }}" style="font-family:'Space Mono',monospace; font-size:13px; color:var(--text); background:var(--surf); padding:8px 14px; border-radius:99px; cursor:pointer;">{{ monthlyChip }}</span>
+            </div>
+
+            <div style="display:flex; gap:10px; margin:14px 0 4px;">
+              <div style="flex:1; background:var(--surf); border-radius:14px; padding:11px 14px;">
+                <div style="font-size:11px; color:var(--mut);">Date</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text); margin-top:2px;">{{ entryDate }}</div>
+              </div>
+              <div style="flex:2; background:var(--surf); border-radius:14px; padding:6px 12px; display:flex; flex-direction:column; justify-content:center;">
+                <div style="font-size:11px; color:var(--mut);">Note (optional)</div>
+                <input value="{{ entryNote }}" onChange="{{ onEntryNote }}" placeholder="e.g. Monthly payment" style="border:none; background:transparent; outline:none; font-family:'Hanken Grotesk',sans-serif; font-size:14px; font-weight:600; color:var(--text); width:100%; padding:2px 0;">
+              </div>
+            </div>
+
+            <span style="flex:1; min-height:8px;"></span>
+            <!-- keypad -->
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div onClick="{{ kp1 }}" style="{{ keyStyle }}">1</div>
+              <div onClick="{{ kp2 }}" style="{{ keyStyle }}">2</div>
+              <div onClick="{{ kp3 }}" style="{{ keyStyle }}">3</div>
+              <div onClick="{{ kp4 }}" style="{{ keyStyle }}">4</div>
+              <div onClick="{{ kp5 }}" style="{{ keyStyle }}">5</div>
+              <div onClick="{{ kp6 }}" style="{{ keyStyle }}">6</div>
+              <div onClick="{{ kp7 }}" style="{{ keyStyle }}">7</div>
+              <div onClick="{{ kp8 }}" style="{{ keyStyle }}">8</div>
+              <div onClick="{{ kp9 }}" style="{{ keyStyle }}">9</div>
+              <div style="{{ keyStyle }}"></div>
+              <div onClick="{{ kp0 }}" style="{{ keyStyle }}">0</div>
+              <div onClick="{{ kpBackspace }}" style="{{ keyStyle }}">⌫</div>
+            </div>
+            <div onClick="{{ confirmPayment }}" style="display:flex; align-items:center; justify-content:center; background:var(--accent); color:var(--onAccent); border-radius:18px; padding:17px; font-weight:700; font-size:16px; margin-bottom:14px; cursor:pointer; opacity:{{ confirmOpacity }};">
+              {{ confirmLabel }}
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== HISTORY ===== -->
+        <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:6px 22px 0;">
+            <div style="padding:6px 0 6px;"><span style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">History</span></div>
+            <div style="display:flex; gap:10px; margin:8px 0 18px;">
+              <div style="flex:1; background:var(--surf); border-radius:16px; padding:14px;">
+                <div style="font-size:12px; color:var(--mut);">{{ stat1Label }}</div>
+                <div style="font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); margin-top:4px;">{{ stat1Val }}</div>
+              </div>
+              <div style="flex:1; background:var(--surf); border-radius:16px; padding:14px;">
+                <div style="font-size:12px; color:var(--mut);">Entries</div>
+                <div style="font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); margin-top:4px;">{{ payCount }}</div>
+              </div>
+            </div>
+
+            <sc-if value="{{ hasPayments }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <sc-for list="{{ paymentList }}" as="item" hint-placeholder-count="6">
+                  <div style="display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);">
+                    <div style="width:38px; height:38px; border-radius:11px; background:var(--accentSoft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;">↓</div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="font-size:15px; font-weight:700; color:var(--text);">{{ item.amountStr }}</div>
+                      <div style="font-size:12px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.line }}</div>
+                    </div>
+                    <span onClick="{{ item.del }}" style="font-size:13px; color:var(--mut); cursor:pointer; padding:6px 8px;">Delete</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noPayments }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:center; padding:60px 20px; color:var(--mut);">
+                <div style="font-size:15px; font-weight:600; color:var(--text);">No payments yet</div>
+                <div style="font-size:13px; margin-top:6px;">Your first one starts the glide. Log it whenever you're ready.</div>
+              </div>
+            </sc-if>
+            <div style="height:16px;"></div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SETTINGS ===== -->
+        <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:6px 22px 0;">
+            <div style="padding:6px 0 14px;"><span style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">Settings</span></div>
+
+            <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mut); margin:6px 4px 8px;">Your goal</div>
+            <div style="background:var(--surf); border-radius:16px; overflow:hidden; margin-bottom:22px;">
+              <div onClick="{{ editGoal }}" style="display:flex; align-items:center; gap:12px; padding:15px; cursor:pointer;">
+                <div style="flex:1;"><div style="font-size:15px; font-weight:700; color:var(--text);">{{ goalName }}</div><div style="font-size:12px; color:var(--mut); margin-top:1px;">{{ goalEditSub }}</div></div>
+                <span style="color:var(--mut); font-size:20px;">›</span>
+              </div>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mut); margin:6px 4px 8px;">App</div>
+            <div style="background:var(--surf); border-radius:16px; overflow:hidden; margin-bottom:22px;">
+              <div onClick="{{ goAppearance }}" style="display:flex; align-items:center; gap:12px; padding:15px; cursor:pointer; border-bottom:1px solid var(--line);">
+                <div style="flex:1;"><div style="font-size:15px; font-weight:600; color:var(--text);">Appearance</div></div>
+                <span style="font-size:13px; color:var(--mut);">{{ selPalLabel }} · {{ modeLabel }}</span>
+                <span style="color:var(--mut); font-size:20px;">›</span>
+              </div>
+              <div style="padding:15px; border-bottom:1px solid var(--line);">
+                <div style="display:flex; align-items:center;"><div style="flex:1; font-size:15px; font-weight:600; color:var(--text);">Milestone alerts</div>
+                  <span onClick="{{ toggleMilestone }}" style="{{ swMilestone }}"><span style="{{ knobMilestone }}"></span></span></div>
+                <div style="font-size:12px; color:var(--mut); margin-top:3px;">A nudge at 25 / 50 / 75 / 100%</div>
+              </div>
+              <div style="padding:15px; border-bottom:1px solid var(--line);">
+                <div style="display:flex; align-items:center;"><div style="flex:1; font-size:15px; font-weight:600; color:var(--text);">Monthly nudge</div>
+                  <span onClick="{{ toggleMonthly }}" style="{{ swMonthly }}"><span style="{{ knobMonthly }}"></span></span></div>
+                <div style="font-size:12px; color:var(--mut); margin-top:3px;">A gentle reminder to log your progress</div>
+              </div>
+              <div style="padding:15px;">
+                <div style="display:flex; align-items:center;"><div style="flex:1; font-size:15px; font-weight:600; color:var(--text);">Keep-it-up encouragement</div>
+                  <span onClick="{{ toggleStreak }}" style="{{ swStreak }}"><span style="{{ knobStreak }}"></span></span></div>
+                <div style="font-size:12px; color:var(--mut); margin-top:3px;">When you keep a steady payment rhythm</div>
+              </div>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mut); margin:6px 4px 8px;">Data</div>
+            <div style="background:var(--surf); border-radius:16px; overflow:hidden; margin-bottom:22px;">
+              <div onClick="{{ doExport }}" style="display:flex; align-items:center; gap:12px; padding:15px; cursor:pointer;">
+                <div style="flex:1;"><div style="font-size:15px; font-weight:600; color:var(--text);">Back up your data</div><div style="font-size:12px; color:var(--mut); margin-top:1px;">Export everything to a file (JSON)</div></div>
+                <span style="color:var(--mut); font-size:20px;">›</span>
+              </div>
+            </div>
+
+            <div style="background:var(--accentSoft); border-radius:16px; padding:16px; margin-bottom:20px;">
+              <div style="font-size:15px; font-weight:700; color:var(--text);">Glidepath is free, and stays that way</div>
+              <div style="font-size:13px; color:var(--mut); margin-top:4px; line-height:1.45;">If it's helped you, you can chip in to keep it going. No pressure, no locked features.</div>
+              <div onClick="{{ doSupport }}" style="display:inline-flex; margin-top:12px; align-items:center; gap:7px; background:var(--accent); color:var(--onAccent); border-radius:12px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer;">Support the app</div>
+            </div>
+
+            <div style="text-align:center; font-size:12px; color:var(--mut); padding-bottom:16px;">Glidepath v1.0 · made local-first, no account needed</div>
+          </div>
+        </sc-if>
+
+        <!-- ===== APPEARANCE ===== -->
+        <sc-if value="{{ isAppearance }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:2px 22px 0;">
+            <div style="display:flex; align-items:center; gap:12px; padding:6px 0 14px;">
+              <span onClick="{{ goSettings }}" style="font-size:26px; line-height:1; color:var(--text); cursor:pointer;">‹</span>
+              <span style="font-size:22px; font-weight:700; color:var(--text);">Appearance</span>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mut); margin:2px 4px 10px;">Mode</div>
+            <div style="display:flex; gap:4px; background:var(--surf); border-radius:14px; padding:4px; margin-bottom:24px;">
+              <div onClick="{{ setModeLight }}" style="{{ segLightMode }}">Light</div>
+              <div onClick="{{ setModeDark }}" style="{{ segDarkMode }}">Dark</div>
+              <div onClick="{{ setModeSystem }}" style="{{ segSysMode }}">System</div>
+            </div>
+
+            <div style="font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mut); margin:2px 4px 10px;">Theme</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-bottom:16px;">
+              <sc-for list="{{ themeList }}" as="item" hint-placeholder-count="6">
+                <div onClick="{{ item.pick }}" style="background:var(--surf); border:2px solid {{ item.ring }}; border-radius:16px; padding:12px; cursor:pointer; display:flex; flex-direction:column; gap:10px;">
+                  <div style="height:44px; border-radius:10px; background:{{ item.bg }}; border:1px solid {{ item.line }}; position:relative; overflow:hidden;">
+                    <div style="position:absolute; left:10px; top:11px; width:22px; height:22px; border-radius:99px; background:{{ item.accent }};"></div>
+                    <div style="position:absolute; left:30px; top:11px; width:22px; height:22px; border-radius:99px; background:{{ item.surf }}; border:1px solid {{ item.line }};"></div>
+                  </div>
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div><div style="font-size:14px; font-weight:700; color:var(--text); line-height:1.1;">{{ item.label }}</div><div style="font-size:11px; color:var(--mut); margin-top:1px;">{{ item.desc }}</div></div>
+                    <sc-if value="{{ item.sel }}" hint-placeholder-val="{{ true }}"><span style="width:20px; height:20px; border-radius:99px; background:var(--accent); color:var(--onAccent); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">✓</span></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== ONBOARDING ===== -->
+        <sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; display:flex; flex-direction:column; padding:6px 24px 0;">
+
+            <sc-if value="{{ obWelcome }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; animation:gpRise .5s ease both;">
+                <div style="width:120px; height:80px; margin:0 auto 30px; position:relative;">
+                  <svg width="120" height="80" viewBox="0 0 120 80" style="overflow:visible;">
+                    <path d="M6,64 C40,60 70,26 114,10" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 6" opacity="0.7"></path>
+                  </svg>
+                  <div style="position:absolute; top:0; left:0; width:0; height:0; border-left:16px solid var(--accent); border-top:9px solid transparent; border-bottom:9px solid transparent; offset-path:path('M6,64 C40,60 70,26 114,10'); offset-distance:70%; offset-rotate:auto;"></div>
+                </div>
+                <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:10px;">Glidepath</div>
+                <div style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px; line-height:1.15;">One number,<br>one runway.</div>
+                <div style="font-size:15px; color:var(--mut); margin-top:14px; line-height:1.5;">Set a goal — money to pay off, or money to save — and watch it glide toward the finish, one payment at a time.</div>
+                <div onClick="{{ obNext }}" style="background:var(--accent); color:var(--onAccent); border-radius:18px; padding:16px; font-weight:700; font-size:16px; margin-top:34px; cursor:pointer;">Set up your goal</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ obDetails }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1; display:flex; flex-direction:column; animation:gpRise .35s ease both;">
+                <div style="display:flex; gap:6px; margin:8px 0 26px;">{{ obDots }}</div>
+                <div style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">What are you tracking?</div>
+                <div style="font-size:14px; color:var(--mut); margin-top:6px;">Give it a name you'll recognise.</div>
+                <input value="{{ obName }}" onChange="{{ onObName }}" placeholder="e.g. Visa card, Kyoto trip" style="margin-top:22px; background:var(--surf); border:2px solid var(--line); border-radius:14px; padding:15px; font-family:'Hanken Grotesk',sans-serif; font-size:16px; font-weight:600; color:var(--text); outline:none;">
+                <div style="font-size:14px; color:var(--mut); margin:26px 0 10px;">Is this money you're...</div>
+                <div style="display:flex; gap:10px;">
+                  <div onClick="{{ obTypeDebt }}" style="{{ obDebtCard }}">
+                    <div style="font-size:16px; font-weight:700; color:var(--text);">Paying down</div>
+                    <div style="font-size:12px; color:var(--mut); margin-top:3px;">A debt gliding to zero</div>
+                  </div>
+                  <div onClick="{{ obTypeSave }}" style="{{ obSaveCard }}">
+                    <div style="font-size:16px; font-weight:700; color:var(--text);">Saving up</div>
+                    <div style="font-size:12px; color:var(--mut); margin-top:3px;">Climbing to a target</div>
+                  </div>
+                </div>
+                <span style="flex:1;"></span>
+                <div onClick="{{ obNext }}" style="background:var(--accent); color:var(--onAccent); border-radius:18px; padding:16px; font-weight:700; font-size:16px; margin-bottom:14px; cursor:pointer; text-align:center;">Continue</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ obAmountStep }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1; display:flex; flex-direction:column; animation:gpRise .35s ease both;">
+                <div style="display:flex; gap:6px; margin:8px 0 22px;">{{ obDots }}</div>
+                <div style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">{{ obAmountTitle }}</div>
+                <div onClick="{{ openCurOb }}" style="align-self:flex-start; margin-top:12px; display:flex; align-items:center; gap:6px; background:var(--surf); border-radius:99px; padding:7px 13px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer;">{{ obCurLabel }} <span style="color:var(--mut);">▾</span></div>
+                <div style="text-align:center; margin:26px 0 4px;">
+                  <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:52px; letter-spacing:-2px; color:{{ obAmountColor }}; line-height:1;"><span style="font-size:28px; color:var(--accent); vertical-align:top;">{{ sym }}</span>{{ obAmountDisplay }}</div>
+                </div>
+                <span style="flex:1;"></span>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div onClick="{{ kp1 }}" style="{{ keyStyle }}">1</div><div onClick="{{ kp2 }}" style="{{ keyStyle }}">2</div><div onClick="{{ kp3 }}" style="{{ keyStyle }}">3</div>
+                  <div onClick="{{ kp4 }}" style="{{ keyStyle }}">4</div><div onClick="{{ kp5 }}" style="{{ keyStyle }}">5</div><div onClick="{{ kp6 }}" style="{{ keyStyle }}">6</div>
+                  <div onClick="{{ kp7 }}" style="{{ keyStyle }}">7</div><div onClick="{{ kp8 }}" style="{{ keyStyle }}">8</div><div onClick="{{ kp9 }}" style="{{ keyStyle }}">9</div>
+                  <div style="{{ keyStyle }}"></div><div onClick="{{ kp0 }}" style="{{ keyStyle }}">0</div><div onClick="{{ kpBackspace }}" style="{{ keyStyle }}">⌫</div>
+                </div>
+                <div onClick="{{ obNext }}" style="background:var(--accent); color:var(--onAccent); border-radius:18px; padding:16px; font-weight:700; font-size:16px; margin-bottom:14px; cursor:pointer; text-align:center; opacity:{{ obAmountOpacity }};">Continue</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ obMonthlyStep }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1; display:flex; flex-direction:column; animation:gpRise .35s ease both;">
+                <div style="display:flex; gap:6px; margin:8px 0 22px;">{{ obDots }}</div>
+                <div style="font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">Set a monthly pace?</div>
+                <div style="font-size:14px; color:var(--mut); margin-top:6px;">Optional — it lets Glidepath show a projected finish date. You can change it anytime.</div>
+                <div style="text-align:center; margin:26px 0 4px;">
+                  <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:52px; letter-spacing:-2px; color:{{ obMonthlyColor }}; line-height:1;"><span style="font-size:28px; color:var(--accent); vertical-align:top;">{{ sym }}</span>{{ obMonthlyDisplay }}<span style="font-size:20px; color:var(--mut);">/mo</span></div>
+                </div>
+                <span style="flex:1;"></span>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <div onClick="{{ kp1 }}" style="{{ keyStyle }}">1</div><div onClick="{{ kp2 }}" style="{{ keyStyle }}">2</div><div onClick="{{ kp3 }}" style="{{ keyStyle }}">3</div>
+                  <div onClick="{{ kp4 }}" style="{{ keyStyle }}">4</div><div onClick="{{ kp5 }}" style="{{ keyStyle }}">5</div><div onClick="{{ kp6 }}" style="{{ keyStyle }}">6</div>
+                  <div onClick="{{ kp7 }}" style="{{ keyStyle }}">7</div><div onClick="{{ kp8 }}" style="{{ keyStyle }}">8</div><div onClick="{{ kp9 }}" style="{{ keyStyle }}">9</div>
+                  <div style="{{ keyStyle }}"></div><div onClick="{{ kp0 }}" style="{{ keyStyle }}">0</div><div onClick="{{ kpBackspace }}" style="{{ keyStyle }}">⌫</div>
+                </div>
+                <div onClick="{{ finishOnboarding }}" style="background:var(--accent); color:var(--onAccent); border-radius:18px; padding:16px; font-weight:700; font-size:16px; margin-bottom:8px; cursor:pointer; text-align:center;">{{ obFinishLabel }}</div>
+                <div onClick="{{ finishOnboarding }}" style="text-align:center; font-size:14px; color:var(--mut); padding:6px; margin-bottom:8px; cursor:pointer;">Skip for now</div>
+              </div>
+            </sc-if>
+
+          </div>
+        </sc-if>
+
+        <!-- ===== GOAL COMPLETE ===== -->
+        <sc-if value="{{ isComplete }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; position:relative; display:flex; flex-direction:column; justify-content:center; text-align:center; padding:0 30px; overflow:hidden;">
+            <div style="position:absolute; inset:0; pointer-events:none;">{{ confetti }}</div>
+            <div style="animation:gpPop .6s cubic-bezier(.22,1.4,.4,1) both;">
+              <div style="width:130px; height:90px; margin:0 auto 26px; position:relative;">
+                <svg width="130" height="90" viewBox="0 0 130 90" style="overflow:visible;">
+                  <path d="M8,70 C46,64 78,26 122,16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"></path>
+                  <line x1="118" y1="6" x2="118" y2="30" stroke="var(--text)" stroke-width="2"></line>
+                  <path d="M118,7 L128,11 L118,15 Z" fill="var(--accent)"></path>
+                </svg>
+                <div style="position:absolute; top:0; left:0; width:0; height:0; border-left:16px solid var(--accent); border-top:9px solid transparent; border-bottom:9px solid transparent; offset-path:path('M8,70 C46,64 78,26 122,16'); offset-distance:100%; offset-rotate:auto;"></div>
+              </div>
+              <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent);">Touchdown</div>
+              <div style="font-size:32px; font-weight:800; color:var(--text); letter-spacing:-0.5px; margin-top:10px; line-height:1.1;">{{ completeTitle }}</div>
+              <div style="font-size:15px; color:var(--mut); margin-top:14px; line-height:1.5;">{{ completeMsg }}</div>
+              <div style="display:flex; gap:10px; margin:30px 0 0;">
+                <div style="flex:1; background:var(--surf); border-radius:16px; padding:16px;"><div style="font-size:12px; color:var(--mut);">{{ completeStatLabel }}</div><div style="font-family:'Space Mono',monospace; font-size:20px; font-weight:700; color:var(--text); margin-top:4px;">{{ completeStatVal }}</div></div>
+                <div style="flex:1; background:var(--surf); border-radius:16px; padding:16px;"><div style="font-size:12px; color:var(--mut);">Payments</div><div style="font-family:'Space Mono',monospace; font-size:20px; font-weight:700; color:var(--text); margin-top:4px;">{{ payCount }}</div></div>
+              </div>
+              <div onClick="{{ startOnboarding }}" style="background:var(--accent); color:var(--onAccent); border-radius:18px; padding:16px; font-weight:700; font-size:16px; margin-top:26px; cursor:pointer;">Start a new goal</div>
+              <div onClick="{{ goHome }}" style="font-size:14px; color:var(--mut); padding:12px; cursor:pointer;">Back to my goal</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== WIDGET (home-screen mock) ===== -->
+        <sc-if value="{{ isWidget }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; background:linear-gradient(165deg, var(--bg), var(--surf)); position:relative; padding:26px 20px; display:flex; flex-direction:column;">
+            <div style="text-align:center; color:var(--text); margin:14px 0 26px;">
+              <div style="font-family:'Space Mono',monospace; font-size:52px; font-weight:700; letter-spacing:-1px;">9:30</div>
+              <div style="font-size:14px; color:var(--mut); margin-top:2px;">Tuesday, 7 July</div>
+            </div>
+            <!-- widget card -->
+            <div style="background:var(--surf); border:1px solid var(--line); border-radius:24px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,0.18);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:22px; height:22px; border-radius:7px; background:var(--accent);"></span>
+                <span style="font-size:13px; font-weight:700; color:var(--text);">{{ goalName }}</span>
+                <span style="flex:1;"></span>
+                <span style="font-size:11px; color:var(--mut);">{{ progPct }} {{ progWord }}</span>
+              </div>
+              <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:34px; letter-spacing:-1.5px; color:var(--text); margin:12px 0 4px;"><span style="font-size:20px; color:var(--accent); vertical-align:top;">{{ sym }}</span>{{ heroPlainStr }}</div>
+              <div style="font-size:12px; color:var(--mut);">{{ heroSub }}</div>
+              <div style="height:8px; background:var(--track); border-radius:99px; margin-top:14px; overflow:hidden;"><div style="height:100%; width:{{ progPct }}; background:var(--accent); border-radius:99px;"></div></div>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:8px; justify-content:flex-end;">
+              <span style="font-size:11px; color:var(--mut);">Glidepath widget · resizes 4×1 and 4×2</span>
+            </div>
+            <span style="flex:1;"></span>
+            <div style="display:flex; justify-content:space-around; padding:10px 6px 4px;">
+              <span style="width:52px; height:52px; border-radius:15px; background:var(--surf); opacity:.8;"></span>
+              <span style="width:52px; height:52px; border-radius:15px; background:var(--surf); opacity:.8;"></span>
+              <span style="width:52px; height:52px; border-radius:15px; background:var(--accent);"></span>
+              <span style="width:52px; height:52px; border-radius:15px; background:var(--surf); opacity:.8;"></span>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <!-- nav footer -->
+      <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; justify-content:space-around; padding:8px 0 6px; border-top:1px solid var(--line); flex:0 0 auto;">
+          <div onClick="{{ goHome }}" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;"><span style="width:22px; height:22px; border-radius:7px; background:{{ navHomeC }};"></span><span style="font-size:11px; color:{{ navHomeT }}; font-weight:600;">Home</span></div>
+          <div onClick="{{ goHistory }}" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;"><span style="width:22px; height:22px; border-radius:7px; background:{{ navHistC }};"></span><span style="font-size:11px; color:{{ navHistT }}; font-weight:600;">History</span></div>
+          <div onClick="{{ goSettings }}" style="display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;"><span style="width:22px; height:22px; border-radius:7px; background:{{ navSetC }};"></span><span style="font-size:11px; color:{{ navSetT }}; font-weight:600;">Settings</span></div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex; justify-content:center; padding:6px 0 10px; flex:0 0 auto;"><span style="width:120px; height:4px; border-radius:99px; background:var(--text); opacity:.35;"></span></div>
+
+      <!-- ===== MILESTONE OVERLAY ===== -->
+      <sc-if value="{{ hasOverlay }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; inset:0; background:var(--bg); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; z-index:20; animation:gpPop .45s cubic-bezier(.22,1.4,.4,1) both;">
+          <div style="width:200px; height:110px; position:relative; margin-bottom:20px;">
+            <svg width="200" height="110" viewBox="0 0 200 110" style="overflow:visible;">
+              <path d="M10,86 C70,74 120,40 190,20" fill="none" stroke="var(--track2)" stroke-width="3" stroke-linecap="round"></path>
+              <circle cx="100" cy="53" r="7" fill="none" stroke="var(--accent)" stroke-width="2" style="transform-origin:100px 53px; animation:gpRing 1.2s ease-out infinite;"></circle>
+              <circle cx="100" cy="53" r="5" fill="var(--accent)"></circle>
+            </svg>
+            <div style="position:absolute; top:0; left:0; width:0; height:0; border-left:18px solid var(--accent); border-top:10px solid transparent; border-bottom:10px solid transparent; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4)); offset-path:path('M10,86 C70,74 120,40 190,20'); offset-rotate:auto; animation:gpGlidePass 1.6s cubic-bezier(.4,0,.3,1) both;"></div>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-weight:700; font-size:64px; color:var(--accent); letter-spacing:-2px; line-height:1;">{{ overlayPct }}</div>
+          <div style="font-size:24px; font-weight:800; color:var(--text); margin-top:14px; letter-spacing:-0.5px;">{{ overlayTitle }}</div>
+          <div style="font-size:15px; color:var(--mut); margin-top:10px; line-height:1.5;">{{ overlayMsg }}</div>
+          <div onClick="{{ closeOverlay }}" style="background:var(--accent); color:var(--onAccent); border-radius:16px; padding:14px 40px; font-weight:700; font-size:16px; margin-top:30px; cursor:pointer;">Keep going</div>
+        </div>
+      </sc-if>
+
+      <!-- currency sheet -->
+      <sc-if value="{{ curSheet }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeCur }}" style="position:absolute; inset:0; background:rgba(0,0,0,0.45); z-index:30; display:flex; flex-direction:column; justify-content:flex-end;">
+          <div style="background:var(--bg); border-radius:26px 26px 0 0; padding:18px 20px 24px; max-height:75%; overflow-y:auto; animation:gpRise .3s ease both;">
+            <div style="width:40px; height:4px; border-radius:99px; background:var(--mut); opacity:.4; margin:0 auto 16px;"></div>
+            <div style="font-size:18px; font-weight:800; color:var(--text); margin-bottom:12px;">Currency</div>
+            <sc-for list="{{ currencyList }}" as="item" hint-placeholder-count="7">
+              <div onClick="{{ item.pick }}" style="display:flex; align-items:center; gap:14px; padding:13px 6px; border-bottom:1px solid var(--line); cursor:pointer;">
+                <span style="font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--accent); width:34px;">{{ item.sym }}</span>
+                <span style="flex:1; font-size:15px; color:var(--text); font-weight:600;">{{ item.name }}</span>
+                <sc-if value="{{ item.sel }}" hint-placeholder-val="{{ false }}"><span style="color:var(--accent); font-weight:700;">✓</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <template id="__bundler_thumbnail">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" fill="#0d201b"/>
+          <path d="M30,68 C44,62 60,44 74,34" fill="none" stroke="#e6b455" stroke-width="3" stroke-linecap="round"/>
+          <path d="M70,31 L80,35 L71,40 Z" fill="#e6b455"/>
+          <circle cx="30" cy="68" r="3" fill="#e6b455"/>
+        </svg>
+      </template>
+
+      <!-- toast -->
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; left:20px; right:20px; bottom:40px; background:var(--text); color:var(--bg); border-radius:14px; padding:14px 18px; font-size:14px; font-weight:600; text-align:center; z-index:40; animation:gpRise .3s ease both; box-shadow:0 12px 30px rgba(0,0,0,0.3);">{{ toast }}</div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'home',
+    pal: 'pine', mode: 'dark',
+    goal: { name: 'Visa card', type: 'debt', total: 8500, currency: 'GBP', monthly: 450 },
+    payments: [
+      { id: 8, amount: 450, date: '1 Oct', note: 'Monthly payment' },
+      { id: 7, amount: 300, date: '15 Sep', note: 'Extra this month' },
+      { id: 6, amount: 450, date: '1 Sep', note: 'Monthly payment' },
+      { id: 5, amount: 760, date: '12 Aug', note: 'Freelance bonus' },
+      { id: 4, amount: 450, date: '1 Aug', note: 'Monthly payment' },
+      { id: 3, amount: 600, date: '3 Jul', note: 'Moved from savings' },
+      { id: 2, amount: 250, date: '20 Jun', note: '' },
+      { id: 1, amount: 2000, date: '1 Jun', note: 'Opening lump sum' },
+    ],
+    disp: 0,
+    celebrated: 50,
+    overlay: null,
+    entry: '', entryNote: '', entryDate: 'Today',
+    kpField: 'entry',
+    ob: { step: 0, editing: false, name: '', type: 'debt', amount: '', currency: 'GBP', monthly: '' },
+    notif: { milestone: true, monthly: true, streak: false, complete: true },
+    curSheet: false, curCtx: 'ob',
+    toast: null,
+  };
+
+  currencies = [
+    { code: 'GBP', sym: '£', name: 'British pound' },
+    { code: 'USD', sym: '$', name: 'US dollar' },
+    { code: 'EUR', sym: '€', name: 'Euro' },
+    { code: 'JPY', sym: '¥', name: 'Japanese yen' },
+    { code: 'AUD', sym: 'A$', name: 'Australian dollar' },
+    { code: 'CAD', sym: 'C$', name: 'Canadian dollar' },
+    { code: 'INR', sym: '₹', name: 'Indian rupee' },
+  ];
+  months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  palOrder = ['pine','harbor','oxblood','deepsea','moss','slate'];
+  palMeta = {
+    pine:{label:'Pinewood',desc:'Green + gold'}, harbor:{label:'Harbor',desc:'Navy + amber'},
+    oxblood:{label:'Oxblood',desc:'Wine + brass'}, deepsea:{label:'Deepsea',desc:'Teal + coral'},
+    moss:{label:'Moss',desc:'Olive + clay'}, slate:{label:'Slate',desc:'Graphite + sky'},
+  };
+  palettes = {
+    pine:{dark:{bg:'#0d201b',surf:'#16302a',line:'#274b42',text:'#eef4f1',mut:'#93b0a6',accent:'#e6b455',onAccent:'#1c2b12',track:'#26463d',track2:'#3a5b52',accentSoft:'rgba(230,180,85,0.16)',bezel:'#050f0c'},light:{bg:'#e9f1ed',surf:'#ffffff',line:'#d7e4de',text:'#14231e',mut:'#5a726b',accent:'#9c6f1c',onAccent:'#ffffff',track:'#dce8e2',track2:'#c3d4cc',accentSoft:'rgba(156,111,28,0.12)',bezel:'#20302b'}},
+    harbor:{dark:{bg:'#0f1826',surf:'#182437',line:'#26344a',text:'#eef2f8',mut:'#93a4bd',accent:'#e8b24a',onAccent:'#20180a',track:'#26344a',track2:'#3a4a63',accentSoft:'rgba(232,178,74,0.16)',bezel:'#070d16'},light:{bg:'#eef1f6',surf:'#ffffff',line:'#d6dde8',text:'#141b26',mut:'#5b6678',accent:'#a9781c',onAccent:'#ffffff',track:'#dce2ec',track2:'#c3ccdb',accentSoft:'rgba(169,120,28,0.12)',bezel:'#1c2636'}},
+    oxblood:{dark:{bg:'#221116',surf:'#31191f',line:'#472530',text:'#f6ecef',mut:'#c69ba7',accent:'#e0a86a',onAccent:'#2a1a0c',track:'#3d2029',track2:'#5a2f3b',accentSoft:'rgba(224,168,106,0.16)',bezel:'#160a0e'},light:{bg:'#f6eef0',surf:'#ffffff',line:'#ecd9de',text:'#2a141b',mut:'#8a6470',accent:'#a86a2c',onAccent:'#ffffff',track:'#eedde2',track2:'#dcc3ca',accentSoft:'rgba(168,106,44,0.12)',bezel:'#2a141b'}},
+    deepsea:{dark:{bg:'#0c1f20',surf:'#123032',line:'#204648',text:'#e9f4f2',mut:'#8fb3b0',accent:'#f08d6b',onAccent:'#2a140c',track:'#204648',track2:'#315e60',accentSoft:'rgba(240,141,107,0.16)',bezel:'#061313'},light:{bg:'#e9f2f1',surf:'#ffffff',line:'#d3e4e2',text:'#0f2422',mut:'#547370',accent:'#cf6a44',onAccent:'#ffffff',track:'#dbe9e7',track2:'#c0d6d3',accentSoft:'rgba(207,106,68,0.12)',bezel:'#12302e'}},
+    moss:{dark:{bg:'#1a1d12',surf:'#272b1a',line:'#3c4229',text:'#f0f2e6',mut:'#a8ac92',accent:'#e9a86a',onAccent:'#2a1c0c',track:'#353a24',track2:'#4c5334',accentSoft:'rgba(233,168,106,0.16)',bezel:'#0e100a'},light:{bg:'#f1f2e8',surf:'#ffffff',line:'#dfe1cf',text:'#1e2114',mut:'#666b52',accent:'#a67a34',onAccent:'#ffffff',track:'#e6e8d6',track2:'#d0d3bc',accentSoft:'rgba(166,122,52,0.12)',bezel:'#22261a'}},
+    slate:{dark:{bg:'#14171c',surf:'#1e232b',line:'#2f3742',text:'#eef1f5',mut:'#98a2b0',accent:'#6fb2e0',onAccent:'#0a1a26',track:'#2b333d',track2:'#414b58',accentSoft:'rgba(111,178,224,0.16)',bezel:'#0a0d11'},light:{bg:'#eef1f5',surf:'#ffffff',line:'#d8dee6',text:'#171b21',mut:'#5c6672',accent:'#2f7fb8',onAccent:'#ffffff',track:'#dde3ea',track2:'#c5cdd7',accentSoft:'rgba(47,127,184,0.12)',bezel:'#1a1f26'}},
+  };
+
+  componentDidMount() { this.tween(this.hero()); }
+
+  // ---- theme ----
+  effMode() {
+    if (this.state.mode !== 'system') return this.state.mode;
+    const dark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return dark ? 'dark' : 'light';
+  }
+  pal() { return this.palettes[this.state.pal][this.effMode()]; }
+  themeVars() {
+    const p = this.pal();
+    return { '--bg':p.bg,'--surf':p.surf,'--line':p.line,'--text':p.text,'--mut':p.mut,'--accent':p.accent,'--onAccent':p.onAccent,'--track':p.track,'--track2':p.track2,'--accentSoft':p.accentSoft,'--bezel':p.bezel };
+  }
+  seg3(a){ return a ? 'flex:1;text-align:center;padding:9px 0;background:var(--accent);color:var(--onAccent);border-radius:11px;cursor:pointer;font-weight:700;font-size:14px;' : 'flex:1;text-align:center;padding:9px 0;color:var(--mut);cursor:pointer;font-weight:600;font-size:14px;'; }
+  sw(on){ return 'width:44px;height:26px;border-radius:99px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;padding:3px;transition:background .2s;background:' + (on ? 'var(--accent)' : 'var(--track2)') + ';'; }
+  knob(on){ return 'width:20px;height:20px;border-radius:99px;background:#fff;transition:transform .2s;transform:translateX(' + (on ? '18px' : '0') + ');'; }
+
+  // ---- money ----
+  cur(){ return this.currencies.find(c => c.code === this.state.goal.currency) || this.currencies[0]; }
+  sym(){ return this.cur().sym; }
+  symFor(code){ const c = this.currencies.find(x => x.code === code); return c ? c.sym : '£'; }
+  fmt(n){ return this.sym() + Math.round(n).toLocaleString('en-GB'); }
+  paid(){ return this.state.payments.reduce((a,p)=>a+p.amount,0); }
+  rem(){ return Math.max(0, this.state.goal.total - this.paid()); }
+  prog(){ return this.state.goal.total > 0 ? Math.min(100, (this.paid()/this.state.goal.total)*100) : 0; }
+  hero(){ return this.state.goal.type === 'debt' ? this.rem() : this.paid(); }
+
+  addMonths(n){ const d = new Date(2026,6,7); d.setMonth(d.getMonth()+Math.max(0,n)); return this.months[d.getMonth()] + ' ' + d.getFullYear(); }
+  projTarget(){ const m = this.state.goal.monthly; if(!m) return '—'; if(this.rem()<=0) return 'Done'; return this.addMonths(Math.ceil(this.rem()/m)); }
+  projPace(){ const ps = this.state.payments.slice(0,3); if(!ps.length) return '—'; if(this.rem()<=0) return 'Done'; const avg = ps.reduce((a,p)=>a+p.amount,0)/ps.length; if(avg<=0) return '—'; return this.addMonths(Math.ceil(this.rem()/avg)); }
+
+  // ---- odometer tween ----
+  tween(to){
+    if (this._raf) cancelAnimationFrame(this._raf);
+    const from = this.state.disp, start = performance.now(), dur = 900;
+    const step = (t) => { let p = Math.min(1,(t-start)/dur); p = 1-Math.pow(1-p,3); this.setState({ disp: Math.round(from+(to-from)*p) }); if (p<1) this._raf = requestAnimationFrame(step); };
+    this._raf = requestAnimationFrame(step);
+  }
+  afterChange(check){
+    this.tween(this.hero());
+    if (check) {
+      const pr = this.prog(); let hit = null;
+      [25,50,75,100].forEach(m => { if (pr >= m && this.state.celebrated < m) hit = m; });
+      if (hit !== null) this.setState({ celebrated: hit, overlay: hit });
+    }
+  }
+
+  // ---- navigation ----
+  goHome = () => this.setState({ screen:'home' });
+  goHistory = () => this.setState({ screen:'history' });
+  goSettings = () => this.setState({ screen:'settings' });
+  goAppearance = () => this.setState({ screen:'appearance' });
+  goWidget = () => this.setState({ screen:'widget' });
+  goComplete = () => this.setState({ screen:'complete' });
+  openLog = () => this.setState({ screen:'log', entry:'', entryNote:'', entryDate:'Today', kpField:'entry' });
+  demoMilestone = () => this.setState({ overlay: 75 });
+
+  // ---- keypad ----
+  kpPush(d){
+    const f = this.state.kpField;
+    if (f === 'entry') { if (this.state.entry.length < 7) this.setState({ entry: (this.state.entry==='0'?'':this.state.entry) + d }); }
+    else if (f === 'obAmount') { if (this.state.ob.amount.length < 8) this.setState(s => ({ ob: { ...s.ob, amount: (s.ob.amount==='0'?'':s.ob.amount) + d } })); }
+    else if (f === 'obMonthly') { if (this.state.ob.monthly.length < 7) this.setState(s => ({ ob: { ...s.ob, monthly: (s.ob.monthly==='0'?'':s.ob.monthly) + d } })); }
+  }
+  kpBack(){
+    const f = this.state.kpField;
+    if (f === 'entry') this.setState({ entry: this.state.entry.slice(0,-1) });
+    else if (f === 'obAmount') this.setState(s => ({ ob: { ...s.ob, amount: s.ob.amount.slice(0,-1) } }));
+    else if (f === 'obMonthly') this.setState(s => ({ ob: { ...s.ob, monthly: s.ob.monthly.slice(0,-1) } }));
+  }
+  kp1=()=>this.kpPush('1'); kp2=()=>this.kpPush('2'); kp3=()=>this.kpPush('3');
+  kp4=()=>this.kpPush('4'); kp5=()=>this.kpPush('5'); kp6=()=>this.kpPush('6');
+  kp7=()=>this.kpPush('7'); kp8=()=>this.kpPush('8'); kp9=()=>this.kpPush('9');
+  kp0=()=>this.kpPush('0'); kpBackspace=()=>this.kpBack();
+  quick50=()=>this.setState({entry:'50'}); quick100=()=>this.setState({entry:'100'});
+  quickMonthly=()=>this.setState({entry: String(this.state.goal.monthly||100)});
+  onEntryNote=(e)=>this.setState({entryNote:e.target.value});
+
+  confirmPayment = () => {
+    const amt = parseInt(this.state.entry||'0',10);
+    if (!amt) return;
+    const label = this.state.goal.type === 'debt' ? 'Payment' : 'Contribution';
+    const p = { id: Date.now(), amount: amt, date: 'Today', note: this.state.entryNote || label };
+    this.setState({ payments: [p, ...this.state.payments], entry:'', entryNote:'', screen:'home' }, () => this.afterChange(true));
+  };
+  deletePayment(id){ this.setState({ payments: this.state.payments.filter(p => p.id !== id) }, () => this.afterChange(false)); }
+
+  closeOverlay = () => {
+    const o = this.state.overlay;
+    if (o === 100) this.setState({ overlay:null, screen:'complete' });
+    else this.setState({ overlay:null });
+  };
+
+  // ---- onboarding ----
+  startOnboarding = () => this.setState({ screen:'onboarding', ob:{ step:0, editing:false, name:'', type:'debt', amount:'', currency:this.state.goal.currency, monthly:'' } });
+  editGoal = () => { const g = this.state.goal; this.setState({ screen:'onboarding', ob:{ step:1, editing:true, name:g.name, type:g.type, amount:String(g.total), currency:g.currency, monthly:g.monthly?String(g.monthly):'' } }); };
+  obStepField(step){ return step===2 ? 'obAmount' : step===3 ? 'obMonthly' : 'entry'; }
+  obNext = () => { const n = this.state.ob.step + 1; this.setState(s => ({ ob:{...s.ob, step:n}, kpField:this.obStepField(n) })); };
+  obTypeDebt = () => this.setState(s => ({ ob:{...s.ob, type:'debt'} }));
+  obTypeSave = () => this.setState(s => ({ ob:{...s.ob, type:'savings'} }));
+  onObName = (e) => this.setState(s => ({ ob:{...s.ob, name:e.target.value} }));
+  finishOnboarding = () => {
+    const ob = this.state.ob;
+    const goal = { name: ob.name||'My goal', type: ob.type, total: parseInt(ob.amount||'0',10)||1000, currency: ob.currency, monthly: parseInt(ob.monthly||'0',10)||0 };
+    if (ob.editing) {
+      this.setState({ goal, screen:'home' }, () => this.afterChange(false));
+    } else {
+      this.setState({ goal, payments:[], celebrated:0, disp:0, overlay:null, screen:'home' }, () => this.tween(this.hero()));
+    }
+  };
+
+  // ---- currency ----
+  openCurOb = () => this.setState({ curSheet:true, curCtx:'ob' });
+  closeCur = () => this.setState({ curSheet:false });
+  pickCur(code){ if (this.state.curCtx==='ob') this.setState(s => ({ ob:{...s.ob, currency:code}, curSheet:false })); else this.setState(s => ({ goal:{...s.goal, currency:code}, curSheet:false })); }
+
+  // ---- settings ----
+  toggleMilestone = () => this.setState(s => ({ notif:{...s.notif, milestone:!s.notif.milestone} }));
+  toggleMonthly = () => this.setState(s => ({ notif:{...s.notif, monthly:!s.notif.monthly} }));
+  toggleStreak = () => this.setState(s => ({ notif:{...s.notif, streak:!s.notif.streak} }));
+  showToast(msg){ this.setState({ toast:msg }); clearTimeout(this._toast); this._toast = setTimeout(()=>this.setState({toast:null}), 2600); }
+  doExport = () => this.showToast('Backup ready — choose where to share it');
+  doSupport = () => this.showToast('Thank you — opening the store…');
+
+  // ---- theme picking (appearance) ----
+  setModeLight = () => this.setState({ mode:'light' });
+  setModeDark = () => this.setState({ mode:'dark' });
+  setModeSystem = () => this.setState({ mode:'system' });
+  resetDemo = () => this.setState({
+    screen:'home', pal:'pine', mode:'dark',
+    goal:{ name:'Visa card', type:'debt', total:8500, currency:'GBP', monthly:450 },
+    payments:[
+      { id:8, amount:450, date:'1 Oct', note:'Monthly payment' },{ id:7, amount:300, date:'15 Sep', note:'Extra this month' },
+      { id:6, amount:450, date:'1 Sep', note:'Monthly payment' },{ id:5, amount:760, date:'12 Aug', note:'Freelance bonus' },
+      { id:4, amount:450, date:'1 Aug', note:'Monthly payment' },{ id:3, amount:600, date:'3 Jul', note:'Moved from savings' },
+      { id:2, amount:250, date:'20 Jun', note:'' },{ id:1, amount:2000, date:'1 Jun', note:'Opening lump sum' },
+    ],
+    celebrated:50, overlay:null, entry:'', entryNote:'', curSheet:false, toast:null,
+  }, () => this.tween(this.hero()));
+
+  tb(active){ return 'padding:6px 12px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;' + (active ? 'background:#26221b;color:#fff;' : 'background:#ffffff;color:#6b6459;border:1px solid #0000001a;'); }
+
+  renderVals(){
+    const s = this.state, g = s.goal, p = this.pal();
+    const debt = g.type === 'debt';
+    const pr = this.prog();
+    const prPct = pr.toFixed(0) + '%';
+    const homePath = debt ? 'M6,22 C120,30 190,92 294,128' : 'M6,128 C110,122 180,60 294,22';
+    const homeArea = debt ? 'M6,22 C120,30 190,92 294,128 L294,150 L6,150 Z' : 'M6,128 C110,122 180,60 294,22 L294,150 L6,150 Z';
+    const dot = (m) => pr >= m ? p.accent : p.track2;
+
+    const themeList = this.palOrder.map(name => {
+      const pp = this.palettes[name][this.effMode()];
+      return { name, label:this.palMeta[name].label, desc:this.palMeta[name].desc, bg:pp.bg, surf:pp.surf, accent:pp.accent, line:pp.line, sel:name===s.pal, ring:name===s.pal?pp.accent:'transparent', pick:()=>this.setState({pal:name}) };
+    });
+    const paymentList = s.payments.map(pay => ({
+      amountStr: '+ ' + this.fmt(pay.amount),
+      line: pay.date + (pay.note ? ' · ' + pay.note : ''),
+      del: () => this.deletePayment(pay.id),
+    }));
+    const currencyList = this.currencies.map(c => ({ sym:c.sym, name:c.name, sel: c.code === (s.curCtx==='ob'? s.ob.currency : g.currency), pick: () => this.pickCur(c.code) }));
+
+    // onboarding dots
+    const dotsArr = [1,2,3].map(i => React.createElement('span', { key:i, style:{ height:6, flex:1, borderRadius:99, background: (s.ob.step >= i+ (s.ob.step? 0:0) ) ? p.accent : p.track2, opacity: s.ob.step>=i?1:.5 } }));
+    const obDots = React.createElement('div', { style:{ display:'flex', gap:6, flex:1 } },
+      [1,2,3].map(i => React.createElement('span', { key:i, style:{ height:6, flex:1, borderRadius:99, background: s.ob.step>=i ? p.accent : p.track2 } })));
+
+    const obCard = (active) => ({ flex:1, background: active ? p.accentSoft : p.surf, border:'2px solid ' + (active ? p.accent : 'transparent'), borderRadius:14, padding:'14px', cursor:'pointer' });
+    const obCardStr = (active) => 'flex:1;background:' + (active?p.accentSoft:p.surf) + ';border:2px solid ' + (active?p.accent:'transparent') + ';border-radius:14px;padding:14px;cursor:pointer;';
+
+    const symOb = this.symFor(s.ob.currency);
+    const obCurObj = this.currencies.find(c=>c.code===s.ob.currency) || this.currencies[0];
+
+    const confetti = React.createElement(React.Fragment, null,
+      Array.from({length:14}).map((_,i)=> React.createElement('span',{ key:i, style:{ position:'absolute', top:0, left:(6+i*6.6)+'%', width:9, height:9, borderRadius: i%2?'99px':'2px', background: i%3? p.accent : p.track2, animation:`gpFall ${2.4+ (i%5)*0.4}s ${i*0.14}s ease-in infinite` } })));
+
+    // hero strings
+    const dispStr = s.disp.toLocaleString('en-GB');
+    const heroSub = debt ? ('of ' + this.fmt(g.total) + ' to touchdown') : (this.fmt(this.rem()) + ' to ' + this.fmt(g.total));
+
+    const screen = s.screen;
+    const showNav = ['home','history','settings','appearance'].includes(screen);
+    const navC = (on) => on ? p.accent : p.track2;
+    const navT = (on) => on ? p.accent : p.mut;
+    const homeActive = screen==='home', histActive = screen==='history', setActive = screen==='settings'||screen==='appearance';
+
+    return {
+      tMain: this.themeVars(),
+      sym: this.sym(),
+
+      // toolbar
+      goHome:this.goHome, openLog:this.openLog, goHistory:this.goHistory, demoMilestone:this.demoMilestone,
+      goComplete:this.goComplete, goSettings:this.goSettings, goAppearance:this.goAppearance, goWidget:this.goWidget, startOnboarding:this.startOnboarding, resetDemo:this.resetDemo,
+      tbHome:this.tb(homeActive), tbLog:this.tb(screen==='log'), tbHistory:this.tb(histActive), tbMile:this.tb(false),
+      tbComplete:this.tb(screen==='complete'), tbSettings:this.tb(screen==='settings'), tbAppear:this.tb(screen==='appearance'), tbWidget:this.tb(screen==='widget'), tbOnb:this.tb(screen==='onboarding'),
+
+      // screen flags
+      showStatus: screen !== 'widget',
+      isHome:screen==='home', isLog:screen==='log', isHistory:screen==='history', isSettings:screen==='settings',
+      isAppearance:screen==='appearance', isOnboarding:screen==='onboarding', isComplete:screen==='complete', isWidget:screen==='widget',
+      showNav,
+      navHomeC:navC(homeActive), navHomeT:navT(homeActive), navHistC:navC(histActive), navHistT:navT(histActive), navSetC:navC(setActive), navSetT:navT(setActive),
+
+      // home
+      goalName:g.name, goalSub: debt ? 'Paying down' : 'Saving toward', goalChip: debt ? 'DEBT' : 'SAVINGS',
+      dispStr, heroSub, homePath, homeArea, progDash: pr.toFixed(1) + ' 100', progPct: prPct, progWord: debt ? 'down' : 'up',
+      m25c:dot(25), m50c:dot(50), m75c:dot(75), m100c:dot(100),
+      endLeft: debt ? 'Start' : 'Ground', endRight: debt ? ('Touchdown · '+this.sym()+'0') : ('Goal · '+this.fmt(g.total)),
+      stat1Label: debt ? 'Paid so far' : 'Saved so far', stat1Val: this.fmt(this.paid()),
+      projTargetDate:this.projTarget(), projPaceDate:this.projPace(),
+      ctaLabel: debt ? 'Log a payment' : 'Add to savings',
+      heroPlainStr: this.hero().toLocaleString('en-GB'),
+
+      // log
+      logTitle: debt ? 'Log a payment' : 'Add to savings',
+      logHint: debt ? 'How much did you pay?' : 'How much did you add?',
+      entryDisplay: s.entry ? parseInt(s.entry,10).toLocaleString('en-GB') : '0',
+      entryColor: s.entry ? p.text : p.mut,
+      entryNote:s.entryNote, entryDate:s.entryDate, onEntryNote:this.onEntryNote,
+      monthlyChip: g.monthly ? (this.sym()+g.monthly) : (this.sym()+'450'),
+      quick50:this.quick50, quick100:this.quick100, quickMonthly:this.quickMonthly,
+      keyStyle: 'height:52px;border-radius:14px;background:'+p.surf+';color:'+p.text+';display:flex;align-items:center;justify-content:center;font-family:\'Space Mono\',monospace;font-size:22px;font-weight:700;cursor:pointer;user-select:none;',
+      kp1:this.kp1,kp2:this.kp2,kp3:this.kp3,kp4:this.kp4,kp5:this.kp5,kp6:this.kp6,kp7:this.kp7,kp8:this.kp8,kp9:this.kp9,kp0:this.kp0,kpBackspace:this.kpBackspace,
+      confirmPayment:this.confirmPayment, confirmLabel: debt ? 'Log payment' : 'Add contribution', confirmOpacity: s.entry ? '1' : '0.5',
+
+      // history
+      hasPayments: s.payments.length > 0, noPayments: s.payments.length === 0,
+      paymentList, payCount: String(s.payments.length),
+
+      // settings
+      goalEditSub: (debt?'Debt · ':'Savings · ') + this.fmt(g.total) + (g.monthly ? ' · '+this.fmt(g.monthly)+'/mo' : ''),
+      selPalLabel:this.palMeta[s.pal].label, modeLabel: s.mode.charAt(0).toUpperCase()+s.mode.slice(1),
+      editGoal:this.editGoal, goAppearance:this.goAppearance, doExport:this.doExport, doSupport:this.doSupport,
+      swMilestone:this.sw(s.notif.milestone), knobMilestone:this.knob(s.notif.milestone), toggleMilestone:this.toggleMilestone,
+      swMonthly:this.sw(s.notif.monthly), knobMonthly:this.knob(s.notif.monthly), toggleMonthly:this.toggleMonthly,
+      swStreak:this.sw(s.notif.streak), knobStreak:this.knob(s.notif.streak), toggleStreak:this.toggleStreak,
+
+      // appearance
+      segLightMode:this.seg3(s.mode==='light'), segDarkMode:this.seg3(s.mode==='dark'), segSysMode:this.seg3(s.mode==='system'),
+      setModeLight:this.setModeLight, setModeDark:this.setModeDark, setModeSystem:this.setModeSystem, themeList,
+
+      // onboarding
+      obWelcome: s.ob.step===0, obDetails: s.ob.step===1, obAmountStep: s.ob.step===2, obMonthlyStep: s.ob.step===3,
+      obDots, obName:s.ob.name, onObName:this.onObName, obNext:this.obNext,
+      obTypeDebt:this.obTypeDebt, obTypeSave:this.obTypeSave,
+      obDebtCard: obCardStr(s.ob.type==='debt'), obSaveCard: obCardStr(s.ob.type==='savings'),
+      obAmountTitle: s.ob.type==='debt' ? 'How much do you owe?' : 'What are you saving toward?',
+      obCurLabel: obCurObj.code + ' · ' + obCurObj.sym, openCurOb:this.openCurOb,
+      obAmountDisplay: s.ob.amount ? parseInt(s.ob.amount,10).toLocaleString('en-GB') : '0',
+      obAmountColor: s.ob.amount ? p.text : p.mut,
+      obAmountOpacity: s.ob.amount ? '1' : '0.5',
+      obMonthlyDisplay: s.ob.monthly ? parseInt(s.ob.monthly,10).toLocaleString('en-GB') : '0',
+      obMonthlyColor: s.ob.monthly ? p.text : p.mut,
+      finishOnboarding:this.finishOnboarding, obFinishLabel: s.ob.editing ? 'Save changes' : 'Start gliding',
+
+      // complete
+      completeTitle: debt ? (g.name + ' is paid off') : (g.name + ' — fully funded'),
+      completeMsg: debt ? 'You cleared every penny. That took real steadiness — enjoy the clear runway ahead.' : 'You reached the target. Every contribution added up to exactly this moment.',
+      completeStatLabel: debt ? 'Total paid' : 'Total saved', completeStatVal: this.fmt(g.total),
+      confetti,
+
+      // milestone overlay
+      hasOverlay: s.overlay !== null,
+      overlayPct: s.overlay!==null ? s.overlay + '%' : '',
+      overlayTitle: s.overlay===25 ? 'A quarter of the way' : s.overlay===50 ? 'Halfway there' : s.overlay===75 ? 'Three quarters down' : 'The finish line',
+      overlayMsg: s.overlay===25 ? 'The hardest part is starting, and you already have.' : s.overlay===50 ? 'The midpoint — the far end is closer than the start now.' : s.overlay===75 ? "Home stretch. You can see the runway from here." : 'One more push to touchdown.',
+      closeOverlay:this.closeOverlay,
+
+      // currency sheet
+      curSheet:s.curSheet, currencyList, closeCur:this.closeCur,
+
+      // toast
+      hasToast: !!s.toast, toast:s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
