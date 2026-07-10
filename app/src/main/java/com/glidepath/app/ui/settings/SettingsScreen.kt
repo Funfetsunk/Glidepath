@@ -1,7 +1,9 @@
 package com.glidepath.app.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,15 +13,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.glidepath.app.data.local.NotifPrefs
 import com.glidepath.app.domain.model.Goal
 import com.glidepath.app.domain.model.GoalType
@@ -27,8 +40,12 @@ import com.glidepath.app.domain.model.formatMoney
 import com.glidepath.app.ui.components.GlideCard
 import com.glidepath.app.ui.components.PrimaryButton
 import com.glidepath.app.ui.components.SectionLabel
+import com.glidepath.app.ui.theme.GlideShapes
 import com.glidepath.app.ui.theme.GlideType
 import com.glidepath.app.ui.theme.LocalGlide
+
+/** Word the user must type to confirm an irreversible goal deletion. */
+private const val DELETE_KEYWORD = "DELETE"
 
 /** Settings (§7.7). Edit-goal entry, Appearance, notification toggles, backup stub, support card. */
 @Composable
@@ -40,9 +57,11 @@ fun SettingsScreen(
     onOpenAppearance: () -> Unit,
     onNotificationsChange: (NotifPrefs) -> Unit,
     onSupport: () -> Unit,
+    onDeleteGoal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val glide = LocalGlide.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -118,11 +137,130 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(20.dp))
+        SectionLabel("Danger zone")
+        Spacer(Modifier.height(8.dp))
+        GlideCard(modifier = Modifier.fillMaxWidth().clickable { showDeleteDialog = true }) {
+            Text("Delete this goal", style = GlideType.body.copy(color = glide.accent), fontWeight = FontWeight.W700)
+            Text(
+                "Removes the goal and every logged payment. This can't be undone.",
+                style = GlideType.secondary.copy(color = glide.muted),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
         Text(
             "Glidepath v1.0 · made local-first, no account needed",
             style = GlideType.caption.copy(color = glide.muted),
         )
         Spacer(Modifier.height(80.dp))
+    }
+
+    if (showDeleteDialog) {
+        DeleteGoalDialog(
+            goalName = goal.name,
+            onDismiss = { showDeleteDialog = false },
+            onConfirmed = {
+                showDeleteDialog = false
+                onDeleteGoal()
+            },
+        )
+    }
+}
+
+/**
+ * Two-step irreversible delete confirmation. Step 1 is an explicit "Yes, delete" intent;
+ * step 2 requires typing [DELETE_KEYWORD] before the final delete enables. Dismiss cancels.
+ */
+@Composable
+private fun DeleteGoalDialog(goalName: String, onDismiss: () -> Unit, onConfirmed: () -> Unit) {
+    val glide = LocalGlide.current
+    var confirmedIntent by remember { mutableStateOf(false) }
+    var typed by remember { mutableStateOf(TextFieldValue("")) }
+    val keywordMatches = typed.text.trim() == DELETE_KEYWORD
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(GlideShapes.card)
+                .background(glide.surface)
+                .border(1.dp, glide.line, GlideShapes.card)
+                .padding(20.dp),
+        ) {
+            Text("Delete “$goalName”?", style = GlideType.screenTitle.copy(color = glide.text))
+            Spacer(Modifier.height(8.dp))
+
+            if (!confirmedIntent) {
+                Text(
+                    "This permanently removes the goal and all its payments. There's no backup.",
+                    style = GlideType.body.copy(color = glide.muted),
+                )
+                Spacer(Modifier.height(20.dp))
+                DangerButton("Yes, delete") { confirmedIntent = true }
+            } else {
+                Text(
+                    "To confirm, type $DELETE_KEYWORD below.",
+                    style = GlideType.body.copy(color = glide.muted),
+                )
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(GlideShapes.tile)
+                        .background(glide.bg)
+                        .border(1.dp, if (keywordMatches) glide.accent else glide.line, GlideShapes.tile)
+                        .padding(14.dp),
+                ) {
+                    BasicTextField(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        singleLine = true,
+                        textStyle = GlideType.mono.copy(color = glide.text),
+                        cursorBrush = SolidColor(glide.accent),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { inner ->
+                            if (typed.text.isEmpty()) {
+                                Text(DELETE_KEYWORD, style = GlideType.mono.copy(color = glide.muted))
+                            }
+                            inner()
+                        },
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+                DangerButton("Delete goal", enabled = keywordMatches, onClick = onConfirmed)
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Cancel",
+                style = GlideType.body.copy(color = glide.muted),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onDismiss).padding(12.dp),
+            )
+        }
+    }
+}
+
+/** A destructive full-width button: accent-outlined, dims when disabled. */
+@Composable
+private fun DangerButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    val glide = LocalGlide.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(GlideShapes.button)
+            .background(if (enabled) glide.accent else Color.Transparent)
+            .border(1.dp, glide.accent, GlideShapes.button)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 15.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text,
+            style = GlideType.body.copy(color = if (enabled) glide.onAccent else glide.accent),
+            fontWeight = FontWeight.W700,
+        )
     }
 }
 

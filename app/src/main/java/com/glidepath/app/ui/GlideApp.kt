@@ -144,6 +144,7 @@ private fun MainScaffold(
                     onOpenAppearance = { navController.navigate(Routes.APPEARANCE) },
                     onNotificationsChange = viewModel::setNotifications,
                     onSupport = { /* Play billing — Phase 7 */ },
+                    onDeleteGoal = { viewModel.startNewGoal(state.data.goal.id) },
                     modifier = Modifier.padding(bottom = 72.dp),
                 )
             }
