@@ -120,3 +120,8 @@ Before considering a task complete: it builds, it runs on a device/emulator, dar
 ## Working notes
 
 Use this section to jot down decisions made mid-build that aren't captured above (e.g. "chose Glance over RemoteViews because X", "min SDK bumped to 28 because of Y"), so future sessions don't re-litigate settled choices.
+
+- **Money type: `Long` minor units (pennies), not `BigDecimal`.** CLAUDEDESIGN.md (the newer designer handoff) specifies integer pennies stored in Room and formatted on display; adopted that over the earlier `BigDecimal` note here. Money is never `Float`/`Double` either way. Domain models also carry `Long` pennies for consistency.
+- **Payment entity naming: `Payment`, not `Contribution`.** Followed the design handoff. Same fields (`goalId`, `amount`, `date`, `note`).
+- **DataStore (Preferences) added** for theme palette+mode, notification toggles, `activeGoalId`, and per-goal `highestMilestoneCelebrated`. Room stays for `Goal`/`Payment`.
+- **Build toolchain:** compileSdk/targetSdk 36, AGP 8.10.1, Kotlin 2.1.0 (Compose compiler plugin), KSP for Room+Hilt codegen, Gradle 8.14.3 wrapper. Derived money values (paid/remaining/progress/hero) are computed, never stored.
