@@ -3,6 +3,7 @@ package com.glidepath.app.ui.goal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.glidepath.app.domain.model.Goal
 import com.glidepath.app.domain.model.GoalType
 import com.glidepath.app.domain.model.formatMoney
+import com.glidepath.app.ui.components.Confetti
 import com.glidepath.app.ui.components.GlideCard
 import com.glidepath.app.ui.components.PrimaryButton
 import com.glidepath.app.ui.components.SectionLabel
@@ -42,10 +44,10 @@ fun GoalCompleteScreen(
 ) {
     val glide = LocalGlide.current
     val isDebt = goal.type == GoalType.DEBT
+    Box(modifier = modifier.fillMaxSize().background(glide.bg)) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .background(glide.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 22.dp, vertical = 24.dp),
@@ -102,5 +104,7 @@ fun GoalCompleteScreen(
                 .padding(12.dp),
             textAlign = TextAlign.Center,
         )
+    }
+        Confetti()
     }
 }

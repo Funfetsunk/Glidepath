@@ -1,7 +1,11 @@
 package com.glidepath.app.ui.components
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,12 +38,16 @@ private val MilestoneStops = listOf(0.25f, 0.5f, 0.75f)
  * The signature runway. A plane rides a curved glide slope, banking to the tangent, with
  * milestone dots at 25/50/75/100%. Debt descends toward touchdown; savings climbs to the target.
  * [progress] (0..1) animates over 900ms EaseOutCubic, or snaps when reduced motion is on.
+ *
+ * [pulseMilestone] (a t in 0..1) draws a pulsing ring at that milestone — used by the milestone
+ * celebration. The pulse is static (a single soft ring) when reduced motion is on.
  */
 @Composable
 fun RunwayPath(
     type: GoalType,
     progress: Float,
     modifier: Modifier = Modifier,
+    pulseMilestone: Float? = null,
 ) {
     val glide = LocalGlide.current
     val reduced = rememberReducedMotion()
@@ -47,6 +56,16 @@ fun RunwayPath(
         animationSpec = if (reduced) tween(0) else tween(durationMillis = 900, easing = GlideEaseOut),
         label = "runwayProgress",
     )
+    val pulse by if (pulseMilestone != null && !reduced) {
+        rememberInfiniteTransition(label = "pulse").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(1200, easing = GlideEaseOut), RepeatMode.Restart),
+            label = "pulseRing",
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
 
     Box(modifier = modifier.fillMaxWidth().height(150.dp)) {
         Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
@@ -96,6 +115,17 @@ fun RunwayPath(
 
             // 6. Dashed ground line.
             drawGroundLine(glide.track2.copy(alpha = 0.5f))
+
+            // Pulsing ring at the celebrated milestone.
+            if (pulseMilestone != null) {
+                val ringPos = measure.getPosition(length * pulseMilestone.coerceIn(0f, 1f))
+                if (reduced) {
+                    drawCircle(glide.accent.copy(alpha = 0.4f), radius = 12.dp.toPx(), center = ringPos, style = Stroke(width = 2.dp.toPx()))
+                } else {
+                    val ringRadius = (6.dp.toPx()) + pulse * 14.dp.toPx()
+                    drawCircle(glide.accent.copy(alpha = (1f - pulse) * 0.6f), radius = ringRadius, center = ringPos, style = Stroke(width = 2.dp.toPx()))
+                }
+            }
 
             // 5. Plane marker, banked to the tangent.
             val planePos = measure.getPosition(length * animated)

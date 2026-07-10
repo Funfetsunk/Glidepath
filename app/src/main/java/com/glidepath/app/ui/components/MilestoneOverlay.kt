@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -49,6 +53,13 @@ fun MilestoneOverlay(percent: Int, type: GoalType, onDismiss: () -> Unit) {
     )
     val (title, line) = milestoneCopy(percent)
 
+    val milestoneT = percent / 100f
+    // The plane starts just short of the marker and glides past it.
+    var planeProgress by remember { mutableStateOf(if (reduced) milestoneT else (milestoneT - 0.12f).coerceAtLeast(0f)) }
+    LaunchedEffect(percent) {
+        if (!reduced) planeProgress = (milestoneT + 0.05f).coerceAtMost(1f)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -60,7 +71,7 @@ fun MilestoneOverlay(percent: Int, type: GoalType, onDismiss: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        RunwayPath(type = type, progress = percent / 100f)
+        RunwayPath(type = type, progress = planeProgress, pulseMilestone = milestoneT)
         Spacer(Modifier.height(28.dp))
         Text("$percent%", style = GlideType.milestonePercent.copy(color = glide.accent))
         Spacer(Modifier.height(12.dp))
