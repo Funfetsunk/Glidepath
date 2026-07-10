@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)

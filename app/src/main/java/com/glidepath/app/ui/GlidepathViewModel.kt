@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -61,7 +62,14 @@ sealed interface GlideEvent {
 class GlidepathViewModel @Inject constructor(
     private val repository: GoalRepository,
     private val prefs: GlidePreferences,
+    private val notifier: com.glidepath.app.notifications.GlideNotifier,
+    private val scheduler: com.glidepath.app.notifications.NotificationScheduler,
 ) : ViewModel() {
+
+    init {
+        notifier.ensureChannels()
+        viewModelScope.launch { scheduler.sync(prefs.notifications.first()) }
+    }
 
     val theme: StateFlow<ThemePrefs> = prefs.theme
         .stateIn(viewModelScope, SharingStarted.Eagerly, ThemePrefs())
@@ -132,7 +140,10 @@ class GlidepathViewModel @Inject constructor(
     }
 
     fun setNotifications(prefs: NotifPrefs) {
-        viewModelScope.launch { this@GlidepathViewModel.prefs.setNotifications(prefs) }
+        viewModelScope.launch {
+            this@GlidepathViewModel.prefs.setNotifications(prefs)
+            scheduler.sync(prefs)
+        }
     }
 
     /** Clears the active goal (and its payments via cascade) to start onboarding a new one. */
@@ -177,11 +188,14 @@ class GlidepathViewModel @Inject constructor(
         val highest = prefs.highestMilestoneFirst(goalId)
         if (reachedPercent > highest) {
             prefs.setHighestMilestone(goalId, reachedPercent)
+            val notifyProgress = prefs.notifications.first().milestone
             if (reachedPercent == 100) {
                 repository.setGoalCompleted(goalId, System.currentTimeMillis())
                 eventChannel.send(GlideEvent.GoalCompleted)
+                if (notifyProgress) notifier.notifyComplete(goal.name, goal.type == GoalType.DEBT)
             } else {
                 eventChannel.send(GlideEvent.MilestoneReached(reachedPercent))
+                if (notifyProgress) notifier.notifyMilestone(reachedPercent, goal.name)
             }
         }
     }
