@@ -120,10 +120,12 @@ fun RunwayPath(
             if (pulseMilestone != null) {
                 val ringPos = measure.getPosition(length * pulseMilestone.coerceIn(0f, 1f))
                 if (reduced) {
-                    drawCircle(glide.accent.copy(alpha = 0.4f), radius = 12.dp.toPx(), center = ringPos, style = Stroke(width = 2.dp.toPx()))
+                    drawCircle(glide.accent.copy(alpha = 0.5f), radius = 14.dp.toPx(), center = ringPos, style = Stroke(width = 3.dp.toPx()))
                 } else {
-                    val ringRadius = (6.dp.toPx()) + pulse * 14.dp.toPx()
-                    drawCircle(glide.accent.copy(alpha = (1f - pulse) * 0.6f), radius = ringRadius, center = ringPos, style = Stroke(width = 2.dp.toPx()))
+                    val ringRadius = (7.dp.toPx()) + pulse * 24.dp.toPx()
+                    drawCircle(glide.accent.copy(alpha = (1f - pulse) * 0.85f), radius = ringRadius, center = ringPos, style = Stroke(width = 3.dp.toPx()))
+                    // Solid inner marker so the point of interest reads even between pulses.
+                    drawCircle(glide.accent, radius = 5.dp.toPx(), center = ringPos)
                 }
             }
 
