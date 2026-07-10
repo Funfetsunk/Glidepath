@@ -158,6 +158,11 @@ class GlidepathViewModel @Inject constructor(
         viewModelScope.launch { repository.deletePayment(payment) }
     }
 
+    /** Edits an existing payment. Recomputes progress but does not re-fire past milestones. */
+    fun updatePayment(payment: Payment) {
+        viewModelScope.launch { repository.updatePayment(payment) }
+    }
+
     private suspend fun checkMilestones(goalId: Long) {
         val goal = repository.getGoal(goalId) ?: return
         val payments = repository.getPayments(goalId)

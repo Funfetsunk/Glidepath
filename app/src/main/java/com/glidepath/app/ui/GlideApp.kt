@@ -132,6 +132,7 @@ private fun MainScaffold(
                 HistoryScreen(
                     data = state.data,
                     onDelete = viewModel::deletePayment,
+                    onEdit = viewModel::updatePayment,
                     modifier = Modifier.padding(bottom = 72.dp),
                 )
             }

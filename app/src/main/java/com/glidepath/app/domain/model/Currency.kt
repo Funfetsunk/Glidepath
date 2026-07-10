@@ -10,17 +10,18 @@ package com.glidepath.app.domain.model
 enum class Currency(
     val code: String,
     val symbol: String,
+    val label: String,
     val decimals: Int,
     val decimalSep: Char,
     val thousandsSep: Char,
 ) {
-    GBP("GBP", "£", 2, '.', ','),
-    USD("USD", "$", 2, '.', ','),
-    EUR("EUR", "€", 2, ',', '.'),
-    JPY("JPY", "¥", 0, '.', ','),
-    AUD("AUD", "A$", 2, '.', ','),
-    CAD("CAD", "C$", 2, '.', ','),
-    INR("INR", "₹", 2, '.', ',');
+    GBP("GBP", "£", "British Pound", 2, '.', ','),
+    USD("USD", "$", "US Dollar", 2, '.', ','),
+    EUR("EUR", "€", "Euro", 2, ',', '.'),
+    JPY("JPY", "¥", "Japanese Yen", 0, '.', ','),
+    AUD("AUD", "A$", "Australian Dollar", 2, '.', ','),
+    CAD("CAD", "C$", "Canadian Dollar", 2, '.', ','),
+    INR("INR", "₹", "Indian Rupee", 2, '.', ',');
 
     companion object {
         fun fromCode(code: String): Currency = entries.firstOrNull { it.code == code } ?: GBP

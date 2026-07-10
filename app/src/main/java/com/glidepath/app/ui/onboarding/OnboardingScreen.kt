@@ -43,6 +43,8 @@ import com.glidepath.app.domain.model.currencySymbol
 import com.glidepath.app.domain.model.moneyRawDisplay
 import com.glidepath.app.domain.model.moneyRawToPennies
 import com.glidepath.app.domain.model.penniesToMoneyRaw
+import com.glidepath.app.ui.components.CurrencyChip
+import com.glidepath.app.ui.components.CurrencyPickerSheet
 import com.glidepath.app.ui.components.NumberKeypad
 import com.glidepath.app.ui.components.PrimaryButton
 import com.glidepath.app.ui.components.RunwayPath
@@ -240,13 +242,14 @@ private fun AmountStep(
 ) {
     val glide = LocalGlide.current
     val pennies = moneyRawToPennies(raw)
+    var showCurrencySheet by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             if (type == GoalType.DEBT) "How much do you owe?" else "What's your target?",
             style = GlideType.onboardingHeadline.copy(color = glide.text),
         )
         Spacer(Modifier.height(20.dp))
-        CurrencyChips(currency, onCurrency)
+        CurrencyChip(currency, onClick = { showCurrencySheet = true })
         Spacer(Modifier.height(16.dp))
         Text(
             "${currencySymbol(currency)}${moneyRawDisplay(raw, currency)}",
@@ -263,6 +266,14 @@ private fun AmountStep(
         )
         Spacer(Modifier.height(12.dp))
         PrimaryButton("Continue", onNext, enabled = pennies > 0)
+    }
+
+    if (showCurrencySheet) {
+        CurrencyPickerSheet(
+            selected = currency,
+            onSelect = onCurrency,
+            onDismiss = { showCurrencySheet = false },
+        )
     }
 }
 
@@ -306,22 +317,3 @@ private fun PaceStep(
     }
 }
 
-@Composable
-private fun CurrencyChips(selected: String, onSelect: (String) -> Unit) {
-    val glide = LocalGlide.current
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Currency.entries.take(4).forEach { c ->
-            val isSel = c.code == selected
-            Box(
-                modifier = Modifier
-                    .clip(GlideShapes.chip)
-                    .background(if (isSel) glide.accentSoft else glide.surface)
-                    .border(1.dp, if (isSel) glide.accent else glide.line, GlideShapes.chip)
-                    .clickable { onSelect(c.code) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            ) {
-                Text("${c.symbol} ${c.code}", style = GlideType.caption.copy(color = if (isSel) glide.accent else glide.muted))
-            }
-        }
-    }
-}
