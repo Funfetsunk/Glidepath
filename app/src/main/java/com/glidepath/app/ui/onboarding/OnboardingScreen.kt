@@ -33,8 +33,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.glidepath.app.domain.model.Currency
 import com.glidepath.app.domain.model.GoalType
+import com.glidepath.app.domain.model.appendMoneyDigit
+import com.glidepath.app.domain.model.appendMoneySeparator
+import com.glidepath.app.domain.model.backspaceMoney
+import com.glidepath.app.domain.model.clampMoneyRawDecimals
+import com.glidepath.app.domain.model.currencyDecimalSeparator
+import com.glidepath.app.domain.model.currencyDecimals
 import com.glidepath.app.domain.model.currencySymbol
-import com.glidepath.app.domain.model.formatMoney
+import com.glidepath.app.domain.model.moneyRawDisplay
+import com.glidepath.app.domain.model.moneyRawToPennies
+import com.glidepath.app.domain.model.penniesToMoneyRaw
 import com.glidepath.app.ui.components.NumberKeypad
 import com.glidepath.app.ui.components.PrimaryButton
 import com.glidepath.app.ui.components.RunwayPath
@@ -71,8 +79,13 @@ fun OnboardingScreen(
     var name by remember { mutableStateOf(TextFieldValue(initial?.name ?: "")) }
     var type by remember { mutableStateOf(initial?.type ?: GoalType.DEBT) }
     var currency by remember { mutableStateOf(initial?.currency ?: "GBP") }
-    var amountUnits by remember { mutableStateOf(initial?.totalPennies?.takeIf { it > 0 }?.let { (it / 100).toString() } ?: "") }
-    var paceUnits by remember { mutableStateOf(initial?.monthlyTargetPennies?.takeIf { it > 0 }?.let { (it / 100).toString() } ?: "") }
+    val decimals = currencyDecimals(currency)
+    var amountRaw by remember {
+        mutableStateOf(initial?.totalPennies?.takeIf { it > 0 }?.let { penniesToMoneyRaw(it, decimals) } ?: "")
+    }
+    var paceRaw by remember {
+        mutableStateOf(initial?.monthlyTargetPennies?.takeIf { it > 0 }?.let { penniesToMoneyRaw(it, decimals) } ?: "")
+    }
     val finishLabel = if (editMode) "Save changes" else "Start gliding"
 
     Column(
@@ -96,24 +109,32 @@ fun OnboardingScreen(
                 onNext = { if (name.text.isNotBlank()) step = Step.AMOUNT },
             )
             Step.AMOUNT -> AmountStep(
-                type = type, currency = currency, onCurrency = { currency = it },
-                units = amountUnits,
-                onDigit = { if (amountUnits.length < 9) amountUnits = (amountUnits + it).trimStart('0') },
-                onBackspace = { amountUnits = amountUnits.dropLast(1) },
-                onNext = { if ((amountUnits.toLongOrNull() ?: 0) > 0) step = Step.PACE },
+                type = type, currency = currency,
+                onCurrency = { newCode ->
+                    currency = newCode
+                    val d = currencyDecimals(newCode)
+                    amountRaw = clampMoneyRawDecimals(amountRaw, d)
+                    paceRaw = clampMoneyRawDecimals(paceRaw, d)
+                },
+                raw = amountRaw, decimals = decimals,
+                onDigit = { amountRaw = appendMoneyDigit(amountRaw, it, decimals) },
+                onDecimal = { amountRaw = appendMoneySeparator(amountRaw, decimals) },
+                onBackspace = { amountRaw = backspaceMoney(amountRaw) },
+                onNext = { if (moneyRawToPennies(amountRaw) > 0) step = Step.PACE },
             )
             Step.PACE -> PaceStep(
-                currency = currency, units = paceUnits, finishLabel = finishLabel,
-                onDigit = { if (paceUnits.length < 9) paceUnits = (paceUnits + it).trimStart('0') },
-                onBackspace = { paceUnits = paceUnits.dropLast(1) },
+                currency = currency, raw = paceRaw, decimals = decimals, finishLabel = finishLabel,
+                onDigit = { paceRaw = appendMoneyDigit(paceRaw, it, decimals) },
+                onDecimal = { paceRaw = appendMoneySeparator(paceRaw, decimals) },
+                onBackspace = { paceRaw = backspaceMoney(paceRaw) },
                 onFinish = {
                     onFinish(
                         OnboardingResult(
                             name = name.text,
                             type = type,
-                            totalPennies = (amountUnits.toLongOrNull() ?: 0) * 100,
+                            totalPennies = moneyRawToPennies(amountRaw),
                             currency = currency,
-                            monthlyTargetPennies = (paceUnits.toLongOrNull() ?: 0) * 100,
+                            monthlyTargetPennies = moneyRawToPennies(paceRaw),
                         ),
                     )
                 },
@@ -214,10 +235,11 @@ private fun TypeCard(title: String, subtitle: String, selected: Boolean, modifie
 @Composable
 private fun AmountStep(
     type: GoalType, currency: String, onCurrency: (String) -> Unit,
-    units: String, onDigit: (Char) -> Unit, onBackspace: () -> Unit, onNext: () -> Unit,
+    raw: String, decimals: Int,
+    onDigit: (Char) -> Unit, onDecimal: () -> Unit, onBackspace: () -> Unit, onNext: () -> Unit,
 ) {
     val glide = LocalGlide.current
-    val pennies = (units.toLongOrNull() ?: 0L) * 100
+    val pennies = moneyRawToPennies(raw)
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             if (type == GoalType.DEBT) "How much do you owe?" else "What's your target?",
@@ -227,13 +249,18 @@ private fun AmountStep(
         CurrencyChips(currency, onCurrency)
         Spacer(Modifier.height(16.dp))
         Text(
-            if (units.isEmpty()) "${currencySymbol(currency)}0" else formatMoney(pennies, currency),
+            "${currencySymbol(currency)}${moneyRawDisplay(raw, currency)}",
             style = GlideType.heroCounter.copy(color = if (pennies > 0) glide.text else glide.muted),
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.weight(1f))
-        NumberKeypad(onDigit = onDigit, onBackspace = onBackspace)
+        NumberKeypad(
+            onDigit = onDigit,
+            onBackspace = onBackspace,
+            decimalKey = if (decimals > 0) currencyDecimalSeparator(currency) else null,
+            onDecimal = onDecimal,
+        )
         Spacer(Modifier.height(12.dp))
         PrimaryButton("Continue", onNext, enabled = pennies > 0)
     }
@@ -241,11 +268,11 @@ private fun AmountStep(
 
 @Composable
 private fun PaceStep(
-    currency: String, units: String, finishLabel: String,
-    onDigit: (Char) -> Unit, onBackspace: () -> Unit, onFinish: () -> Unit,
+    currency: String, raw: String, decimals: Int, finishLabel: String,
+    onDigit: (Char) -> Unit, onDecimal: () -> Unit, onBackspace: () -> Unit, onFinish: () -> Unit,
 ) {
     val glide = LocalGlide.current
-    val pennies = (units.toLongOrNull() ?: 0L) * 100
+    val pennies = moneyRawToPennies(raw)
     Column(modifier = Modifier.fillMaxSize()) {
         Text("Monthly pace", style = GlideType.onboardingHeadline.copy(color = glide.text))
         Text(
@@ -255,13 +282,18 @@ private fun PaceStep(
         )
         Spacer(Modifier.height(20.dp))
         Text(
-            if (units.isEmpty()) "${currencySymbol(currency)}0" else "${formatMoney(pennies, currency)}/mo",
+            if (raw.isEmpty()) "${currencySymbol(currency)}0" else "${currencySymbol(currency)}${moneyRawDisplay(raw, currency)}/mo",
             style = GlideType.heroCounter.copy(color = if (pennies > 0) glide.text else glide.muted),
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.weight(1f))
-        NumberKeypad(onDigit = onDigit, onBackspace = onBackspace)
+        NumberKeypad(
+            onDigit = onDigit,
+            onBackspace = onBackspace,
+            decimalKey = if (decimals > 0) currencyDecimalSeparator(currency) else null,
+            onDecimal = onDecimal,
+        )
         Spacer(Modifier.height(12.dp))
         PrimaryButton(finishLabel, onFinish)
         Spacer(Modifier.height(4.dp))

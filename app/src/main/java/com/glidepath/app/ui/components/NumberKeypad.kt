@@ -20,20 +20,26 @@ import com.glidepath.app.ui.theme.GlideType
 import com.glidepath.app.ui.theme.LocalGlide
 
 /**
- * Shared 3×4 number keypad: 1–9, blank, 0, ⌫ (§7.3). Keys are surface tiles with mono digits.
- * [onDigit] receives '0'..'9'; [onBackspace] removes the last entered digit.
+ * Shared 3×4 number keypad: 1–9, [decimalKey]/blank, 0, ⌫ (§7.3). Keys are surface tiles with
+ * mono digits. [onDigit] receives '0'..'9'; [onBackspace] removes the last entered character.
+ *
+ * The bottom-left tile shows the currency's decimal separator when [decimalKey] is non-null and
+ * calls [onDecimal]; for zero-decimal currencies (e.g. JPY) pass null to leave it blank.
  */
 @Composable
 fun NumberKeypad(
     onDigit: (Char) -> Unit,
     onBackspace: () -> Unit,
     modifier: Modifier = Modifier,
+    decimalKey: Char? = null,
+    onDecimal: () -> Unit = {},
 ) {
+    val decimalLabel = decimalKey?.toString() ?: ""
     val rows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf("", "0", "⌫"),
+        listOf(decimalLabel, "0", "⌫"),
     )
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         rows.forEach { row ->
@@ -43,6 +49,7 @@ fun NumberKeypad(
                         when (key) {
                             "" -> Unit
                             "⌫" -> onBackspace()
+                            decimalLabel -> onDecimal()
                             else -> onDigit(key[0])
                         }
                     }

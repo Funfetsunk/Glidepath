@@ -27,8 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.glidepath.app.domain.model.appendMoneyDigit
+import com.glidepath.app.domain.model.appendMoneySeparator
+import com.glidepath.app.domain.model.backspaceMoney
+import com.glidepath.app.domain.model.currencyDecimalSeparator
+import com.glidepath.app.domain.model.currencyDecimals
 import com.glidepath.app.domain.model.currencySymbol
 import com.glidepath.app.domain.model.formatMoney
+import com.glidepath.app.domain.model.moneyRawDisplay
+import com.glidepath.app.domain.model.moneyRawToPennies
+import com.glidepath.app.domain.model.penniesToMoneyRaw
 import com.glidepath.app.ui.components.NumberKeypad
 import com.glidepath.app.ui.components.PrimaryButton
 import com.glidepath.app.ui.components.SectionLabel
@@ -38,7 +46,8 @@ import com.glidepath.app.ui.theme.LocalGlide
 
 /**
  * Fast payment entry (§7.3): big mono amount, quick chips, optional note, custom keypad.
- * Amount is entered in whole currency units; [onConfirm] receives pennies.
+ * Amount supports minor units (pence/cents) via the currency-aware decimal key; [onConfirm]
+ * receives pennies.
  */
 @Composable
 fun LogPaymentScreen(
@@ -50,9 +59,10 @@ fun LogPaymentScreen(
     modifier: Modifier = Modifier,
 ) {
     val glide = LocalGlide.current
-    var units by remember { mutableStateOf("") }
+    val decimals = currencyDecimals(currencyCode)
+    var raw by remember { mutableStateOf("") }
     var note by remember { mutableStateOf(TextFieldValue("")) }
-    val amountPennies = (units.toLongOrNull() ?: 0L) * 100
+    val amountPennies = moneyRawToPennies(raw)
     val valid = amountPennies > 0L
 
     Column(
@@ -89,7 +99,7 @@ fun LogPaymentScreen(
                 modifier = Modifier.padding(top = 6.dp, end = 2.dp),
             )
             Text(
-                if (units.isEmpty()) "0" else formatMoney(amountPennies, currencyCode, withSymbol = false),
+                moneyRawDisplay(raw, currencyCode),
                 style = GlideType.milestonePercent.copy(color = if (valid) glide.text else glide.muted),
             )
         }
@@ -104,11 +114,11 @@ fun LogPaymentScreen(
 
         // Quick chips
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickChip("${currencySymbol(currencyCode)}50", Modifier.weight(1f)) { units = "50" }
-            QuickChip("${currencySymbol(currencyCode)}100", Modifier.weight(1f)) { units = "100" }
+            QuickChip("${currencySymbol(currencyCode)}50", Modifier.weight(1f)) { raw = "50" }
+            QuickChip("${currencySymbol(currencyCode)}100", Modifier.weight(1f)) { raw = "100" }
             if (monthlyTargetPennies > 0) {
                 QuickChip(formatMoney(monthlyTargetPennies, currencyCode), Modifier.weight(1f)) {
-                    units = (monthlyTargetPennies / 100).toString()
+                    raw = penniesToMoneyRaw(monthlyTargetPennies, decimals)
                 }
             }
         }
@@ -141,8 +151,10 @@ fun LogPaymentScreen(
         Spacer(Modifier.weight(1f))
 
         NumberKeypad(
-            onDigit = { d -> if (units.length < 9) units = (units + d).trimStart('0') },
-            onBackspace = { units = units.dropLast(1) },
+            onDigit = { d -> raw = appendMoneyDigit(raw, d, decimals) },
+            onBackspace = { raw = backspaceMoney(raw) },
+            decimalKey = if (decimals > 0) currencyDecimalSeparator(currencyCode) else null,
+            onDecimal = { raw = appendMoneySeparator(raw, decimals) },
         )
 
         Spacer(Modifier.height(12.dp))
