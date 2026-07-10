@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +53,8 @@ fun MilestoneOverlay(percent: Int, type: GoalType, onDismiss: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(glide.bg)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 22.dp, vertical = 40.dp)
             .scale(if (reduced) 1f else scale),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
@@ -70,6 +72,8 @@ fun OnboardingScreen(
         modifier = modifier
             .fillMaxSize()
             .background(glide.bg)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 22.dp, vertical = 20.dp),
     ) {
         if (step != Step.WELCOME) {
