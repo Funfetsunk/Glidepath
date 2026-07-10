@@ -127,6 +127,22 @@ class GlidepathViewModel @Inject constructor(
         viewModelScope.launch { repository.updateGoal(goal) }
     }
 
+    fun setTheme(palette: com.glidepath.app.ui.theme.GlidePalette, mode: com.glidepath.app.ui.theme.GlideMode) {
+        viewModelScope.launch { prefs.setTheme(palette, mode) }
+    }
+
+    fun setNotifications(prefs: NotifPrefs) {
+        viewModelScope.launch { this@GlidepathViewModel.prefs.setNotifications(prefs) }
+    }
+
+    /** Clears the active goal (and its payments via cascade) to start onboarding a new one. */
+    fun startNewGoal(currentGoalId: Long) {
+        viewModelScope.launch {
+            repository.deleteGoal(currentGoalId)
+            prefs.setActiveGoalId(null)
+        }
+    }
+
     /** Logs a payment, then checks for a newly-crossed milestone / completion. */
     fun addPayment(goalId: Long, amountPennies: Long, date: Long, note: String) {
         viewModelScope.launch {

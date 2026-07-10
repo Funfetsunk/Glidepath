@@ -54,19 +54,26 @@ data class OnboardingResult(
     val monthlyTargetPennies: Long,
 )
 
-/** First-run goal setup (§7.1). Multi-step with progress dots; finishes by calling [onFinish]. */
+/**
+ * Goal setup (§7.1). Multi-step with progress dots; finishes by calling [onFinish].
+ * When [editMode] is true the Welcome step is skipped, fields are prefilled from [initial],
+ * and the finish label becomes "Save changes" (payments are kept by the caller).
+ */
 @Composable
 fun OnboardingScreen(
     onFinish: (OnboardingResult) -> Unit,
     modifier: Modifier = Modifier,
+    editMode: Boolean = false,
+    initial: OnboardingResult? = null,
 ) {
     val glide = LocalGlide.current
-    var step by remember { mutableStateOf(Step.WELCOME) }
-    var name by remember { mutableStateOf(TextFieldValue("")) }
-    var type by remember { mutableStateOf(GoalType.DEBT) }
-    var currency by remember { mutableStateOf("GBP") }
-    var amountUnits by remember { mutableStateOf("") }
-    var paceUnits by remember { mutableStateOf("") }
+    var step by remember { mutableStateOf(if (editMode) Step.DETAILS else Step.WELCOME) }
+    var name by remember { mutableStateOf(TextFieldValue(initial?.name ?: "")) }
+    var type by remember { mutableStateOf(initial?.type ?: GoalType.DEBT) }
+    var currency by remember { mutableStateOf(initial?.currency ?: "GBP") }
+    var amountUnits by remember { mutableStateOf(initial?.totalPennies?.takeIf { it > 0 }?.let { (it / 100).toString() } ?: "") }
+    var paceUnits by remember { mutableStateOf(initial?.monthlyTargetPennies?.takeIf { it > 0 }?.let { (it / 100).toString() } ?: "") }
+    val finishLabel = if (editMode) "Save changes" else "Start gliding"
 
     Column(
         modifier = modifier
@@ -96,7 +103,7 @@ fun OnboardingScreen(
                 onNext = { if ((amountUnits.toLongOrNull() ?: 0) > 0) step = Step.PACE },
             )
             Step.PACE -> PaceStep(
-                currency = currency, units = paceUnits,
+                currency = currency, units = paceUnits, finishLabel = finishLabel,
                 onDigit = { if (paceUnits.length < 9) paceUnits = (paceUnits + it).trimStart('0') },
                 onBackspace = { paceUnits = paceUnits.dropLast(1) },
                 onFinish = {
@@ -234,7 +241,7 @@ private fun AmountStep(
 
 @Composable
 private fun PaceStep(
-    currency: String, units: String,
+    currency: String, units: String, finishLabel: String,
     onDigit: (Char) -> Unit, onBackspace: () -> Unit, onFinish: () -> Unit,
 ) {
     val glide = LocalGlide.current
@@ -256,7 +263,7 @@ private fun PaceStep(
         Spacer(Modifier.weight(1f))
         NumberKeypad(onDigit = onDigit, onBackspace = onBackspace)
         Spacer(Modifier.height(12.dp))
-        PrimaryButton("Start gliding", onFinish)
+        PrimaryButton(finishLabel, onFinish)
         Spacer(Modifier.height(4.dp))
         Text(
             "Skip for now",
